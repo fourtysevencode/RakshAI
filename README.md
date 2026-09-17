@@ -502,3 +502,23 @@ This avoids failures caused by launching the application from a different workin
 ## Goal
 
 RakshAI aims to provide a practical way to analyze construction-site footage, quantify observed PPE safety violations, surface when and how violations occur, and provide evidence-backed PDF reports for human review.
+
+## Backend API Quickstart (API only, model.onnx usage via notebooks)
+
+- Prerequisites: Python 3.9+ (preferred 3.10+). Ensure you have a working Python environment.
+- Install dependencies:
+  - From repo root: `python -m venv venv` (optional but recommended)
+  - On macOS/Linux: `source venv/bin/activate`
+  - Then install: `pip install -r backend/requirements.txt`
+- Ensure the ONNX model is available at: `models/best.onnx` (path relative to repo root).
+- Run the API server (backend only):
+  - `uvicorn backend.app:app --reload --port 8000 --host 0.0.0.0`
+- API endpoints (MVP):
+  - POST /api/v1/analysis: submit a video (multipart) with site_name and camera_id. Returns analysis_id.
+  - GET /api/v1/analysis/{analysis_id}: get analysis status and metadata.
+  - GET /api/v1/analysis/{analysis_id}/results: get results payload.
+  - GET /api/v1/analysis/{analysis_id}/events: get events payload.
+  - GET /api/v1/analysis/{analysis_id}/report: download generated PDF report (if completed).
+- Notes:
+  - The MVP uses an in-memory store for analyses. For real deployments, migrate to a persistent DB.
+  - The ONNX model can be exercised via the predict_frame function in backend/utils/predict.py; if the model cannot be loaded, a graceful fallback yields empty detections.

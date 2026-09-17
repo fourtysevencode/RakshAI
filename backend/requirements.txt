@@ -5,4 +5,5 @@ uvicorn
 onnxruntime
 ultralytics
 opencv-python
+reportlab
 pydantic

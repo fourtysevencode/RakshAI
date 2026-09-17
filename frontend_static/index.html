@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RakshAI Frontend</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f6f7fb; color: #111; margin: 0; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { margin-top: 0; }
+    .card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-top: 20px; }
+    .field { margin-bottom: 12px; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; }
+    input[type="text"], input[type="file"] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 10px 14px; border-radius: 6px; border: none; background: #4f46e5; color: white; font-weight: 600; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .progress { height: 12px; background: #eee; border-radius: 6px; overflow: hidden; margin-top: 8px; }
+    .progress > span { display: block; height: 100%; background: linear-gradient(90deg, #34d399, #4f46e5); width: 0%; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 4px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>RakshAI Frontend (Plain HTML/JS)</h1>
+    <p>Upload a video and start PPE safety analysis. This frontend talks directly to the FastAPI backend.</p>
+
+    <div class="card">
+      <h2>Start Analysis</h2>
+      <form id="analysisForm">
+        <div class="field">
+          <label>Frames to Skip (process 1 out of N frames)</label>
+          <input type="range" id="frameSkip" min="1" max="60" value="1" step="1" />
+          <div id="frameSkipValue" style="font-size:12px; color:#666;">1</div>
+        </div>
+        <div class="field">
+          <label>Site Name</label>
+          <input type="text" id="site" required />
+        </div>
+        <div class="field">
+          <label>Camera ID</label>
+          <input type="text" id="camera" required />
+        </div>
+        <div class="field">
+          <label>Video File</label>
+          <input type="file" id="video" accept="video/*" required />
+        </div>
+        <button type="submit" id="startBtn">Start Analysis</button>
+      </form>
+      <div class="progress" id="progress" style="display:none;"><span id="progressFill"></span></div>
+      <p id="status" style="margin-top:8px;"></p>
+    </div>
+
+    <div class="card" id="resultsPane" style="display:none;">
+      <h2>Results</h2>
+      <div id="violationsSummary" style="margin:6px 0; font-family: monospace; white-space: pre-wrap;"></div>
+      <pre id="resultsRaw"></pre>
+      <a id="reportLink" href="#" target="_blank" style="display:none;">Download PDF Report</a>
+    </div>
+  </div>
+
+    <script>
+    const form = document.getElementById('analysisForm')
+    const startBtn = document.getElementById('startBtn')
+    const status = document.getElementById('status')
+    const progress = document.getElementById('progress')
+    const progressFill = document.getElementById('progressFill')
+    const resultsPane = document.getElementById('resultsPane')
+    const resultsRaw = document.getElementById('resultsRaw')
+    const reportLink = document.getElementById('reportLink')
+    let analysisId = null
+    const frameSkipInput = document.getElementById('frameSkip')
+    const frameSkipValue = document.getElementById('frameSkipValue')
+    frameSkipValue.textContent = frameSkipInput.value
+    frameSkipInput.addEventListener('input', () => {
+      frameSkipValue.textContent = frameSkipInput.value
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const site = document.getElementById('site').value
+      const cam = document.getElementById('camera').value
+      const video = document.getElementById('video').files[0]
+      if (!site || !cam || !video) {
+        alert('Please provide site, camera and a video file')
+        return
+      }
+      const fd = new FormData()
+      fd.append('video', video)
+      fd.append('site_name', site)
+      fd.append('camera_id', cam)
+      fd.append('frame_skip', frameSkipInput.value)
+      const res = await fetch('/api/v1/analysis', { method:'POST', body: fd })
+      const data = await res.json()
+      analysisId = data.analysis_id
+      status.textContent = 'Submitted. Analysis ID: ' + analysisId
+      progress.style.display = 'block'
+      progressFill.style.width = '0%'
+      const poll = setInterval(async () => {
+        try {
+          const r = await fetch(`/api/v1/analysis/${analysisId}`)
+          const j = await r.json()
+          status.textContent = 'Status: ' + j.status
+          progressFill.style.width = (j.progress || 0) + '%'
+          if (j.results) {
+            resultsPane.style.display = 'block'
+            resultsRaw.textContent = JSON.stringify(j.results, null, 2)
+            // Quick violations summary in UI (optional)
+            const v = j.results.violations
+            if (v) {
+              const counts = Object.entries(v.types || {}).map(([k, val]) => `${k}: ${val}`).join(', ')
+              document.getElementById('violationsSummary').textContent = `Violations total: ${v.total_violations}  |  Rate: ${v.violation_rate?.toFixed(2) || '0'}  |  Types: ${counts}`
+            } else {
+              document.getElementById('violationsSummary').textContent = ''
+            }
+          }
+          if (j.report_path) {
+            reportLink.style.display = 'inline'
+            reportLink.href = `/api/v1/analysis/${analysisId}/report`
+          }
+          if (j.status === 'completed' || j.status === 'failed') {
+            clearInterval(poll)
+          }
+        } catch (err) {
+          // ignore transient errors
+        }
+      }, 1000);
+    })
+  </script>
+</body>
+</html>
