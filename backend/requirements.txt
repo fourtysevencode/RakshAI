@@ -2,3 +2,6 @@ fastapi
 pandas
 numpy
 uvicorn
+onnxruntime
+ultralytics
+opencv
