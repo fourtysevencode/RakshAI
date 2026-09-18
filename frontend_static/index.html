@@ -4,127 +4,256 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>RakshAI Frontend</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: Arial, sans-serif; background: #f6f7fb; color: #111; margin: 0; padding: 20px; }
-    .container { max-width: 900px; margin: 0 auto; }
-    h1 { margin-top: 0; }
-    .card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-top: 20px; }
-    .field { margin-bottom: 12px; }
-    label { display: block; margin-bottom: 6px; font-weight: 600; }
-    input[type="text"], input[type="file"] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-    button { padding: 10px 14px; border-radius: 6px; border: none; background: #4f46e5; color: white; font-weight: 600; cursor: pointer; }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    .progress { height: 12px; background: #eee; border-radius: 6px; overflow: hidden; margin-top: 8px; }
-    .progress > span { display: block; height: 100%; background: linear-gradient(90deg, #34d399, #4f46e5); width: 0%; }
-    pre { background: #f4f4f4; padding: 10px; border-radius: 4px; overflow: auto; }
+    /* Animations and drag-state helpers */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes glowPulse { 0%,100% { box-shadow: 0 0 0 rgba(245, 158, 11, 0); } 50% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.4); } }
+    .animate-fade-in { animation: fadeInUp 0.5s ease-out both; }
+    .drag-over { border-color: #f59e0b; box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.25); transform: scale(1.01); }
+    .pulse-glow { animation: glowPulse 2s ease-in-out infinite; }
   </style>
+  <script>
+  async function downscaleVideoIfNeeded(file) {
+    if (!file) return file;
+    if (!window.File || !window.FileReader || !window.Blob) return file;
+    if (!('MediaRecorder' in window) || typeof document.createElement('canvas').captureStream !== 'function') {
+      return file;
+    }
+    try {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement('video');
+      v.src = url;
+      v.muted = true;
+      v.playsInline = true;
+      await new Promise(res => v.onloadedmetadata = res);
+      const w = v.videoWidth;
+      const h = v.videoHeight;
+      URL.revokeObjectURL(url);
+      if (h <= 720 && w <= 1280) return file;
+      const scale = Math.min(1280 / w, 720 / h);
+      const targetW = Math.max(1, Math.floor(w * scale));
+      const targetH = Math.max(1, Math.floor(h * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW; canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+      const stream = canvas.captureStream(25);
+      let recorder;
+      try {
+        recorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
+      } catch (e) {
+        try {
+          recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+        } catch (err) {
+          return file;
+        }
+      }
+      const chunks = [];
+      recorder.ondataavailable = (ev) => { if (ev.data.size) chunks.push(ev.data); };
+      const blobPromise = new Promise((resolve) => recorder.onstop = () => resolve(new Blob(chunks, { type: recorder.mimeType })));
+      recorder.start();
+      const src = document.createElement('video');
+      src.src = URL.createObjectURL(file);
+      src.muted = true; src.playsInline = true;
+      await new Promise(res => src.onloadedmetadata = res);
+      await src.play();
+      let raf;
+      const draw = () => {
+        if (src.ended) return;
+        ctx.drawImage(src, 0, 0, targetW, targetH);
+        raf = requestAnimationFrame(draw);
+      };
+      raf = requestAnimationFrame(draw);
+      await new Promise(res => src.onended = res);
+      cancelAnimationFrame(raf);
+      src.pause();
+      recorder.stop();
+      const blob = await blobPromise;
+      URL.revokeObjectURL(src.src);
+      const newName = (file.name ? file.name.replace(/(\.[^.]+$)/, '') : 'video720p') + '_720p.webm';
+      const newFile = new File([blob], newName, { type: blob.type });
+      return newFile;
+    } catch (err) {
+      return file;
+    }
+  }
+  tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: '#f59e0b', // warm amber for branding
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body>
-  <div class="container">
-    <h1>RakshAI Frontend (Plain HTML/JS)</h1>
-    <p>Upload a video and start PPE safety analysis. This frontend talks directly to the FastAPI backend.</p>
+<body class="min-h-screen bg-black text-yellow-100 dark">
+  <div class="container mx-auto p-6 animate-fade-in">
+    <header class="mb-6">
+      <h1 class="text-3xl font-bold text-yellow-200">RakshAI Video Upload</h1>
+      <p class="text-sm text-yellow-400 opacity-90">Upload a video, run PPE safety analysis, and download the generated PDF report.</p>
+    </header>
+    <main class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Upload Card with Drag & Drop (wrapped in a form for submission) -->
+      <section class="bg-gray-800 rounded-xl border border-yellow-500/60 p-6 shadow-sm">
+        <h2 class="text-xl font-semibold mb-4">Start Analysis</h2>
+        <form id="analysisForm" class="space-y-4">
+          <div id="dropzone" class="border-2 border-dashed border-yellow-500 rounded-lg p-6 text-center cursor-pointer hover:bg-yellow-50/4 bg-gray-900/40 mb-4">
+            <p class="font-semibold">Drag & drop video here</p>
+            <p class="text-sm text-yellow-300">or click to select a video file</p>
+          </div>
+          <div id="selectedInfo" class="text-sm text-yellow-300 mt-2">No file selected</div>
+          <input id="video" type="file" accept="video/*" class="hidden" />
+          <video id="videoPreview" class="w-full rounded-md mt-2 hidden" controls></video>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+            <div>
+              <label for="site" class="block text-sm font-semibold text-yellow-100 mb-1">Site Name</label>
+              <input id="site" class="w-full rounded-md bg-gray-900 border border-yellow-500 focus:border-yellow-400 text-yellow-100 p-2" placeholder="Site A" required />
+            </div>
+            <div>
+              <label for="camera" class="block text-sm font-semibold text-yellow-100 mb-1">Camera ID</label>
+              <input id="camera" class="w-full rounded-md bg-gray-900 border border-yellow-500 focus:border-yellow-400 text-yellow-100 p-2" placeholder="CAM-01" required />
+            </div>
+          </div>
+          <div class="mt-2 flex items-center space-x-3">
+            <label for="frameSkip" class="block text-sm font-semibold text-yellow-100 mb-1">Frames to Skip</label>
+            <input id="frameSkip" type="range" min="1" max="60" value="1" class="w-full" />
+            <div class="text-xs text-yellow-400 mt-1" id="frameSkipValue">1</div>
+          </div>
+          <div class="mt-2 flex items-center space-x-3">
+            <label for="debugAllFrames" class="block text-sm font-semibold text-yellow-100 mb-1">Verbose logs</label>
+            <input id="debugAllFrames" type="checkbox" />
+          </div>
+          <div class="mt-2 flex items-center space-x-3">
+            <label for="processAllFrames" class="block text-sm font-semibold text-yellow-100 mb-1">Process all frames</label>
+            <input id="processAllFrames" type="checkbox" />
+          </div>
+        <div class="flex items-center space-x-3 mt-2">
+            <button id="startBtn" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-gray-900 font-semibold transform transition-transform duration-300 hover:scale-105" type="submit">Start Analysis</button>
+            <span id="status" class="text-sm text-yellow-200"></span>
+          </div>
+          <div class="progress mt-2 h-2 rounded-full bg-gray-700" aria-label="progress" role="progressbar" id="progress">
+            <span id="progressFill" class="block h-2 rounded-full" style="width:0%; background: linear-gradient(90deg, #f59e0b, #facc14);"></span>
+          </div>
+        </form>
+      </section>
 
-    <div class="card">
-      <h2>Start Analysis</h2>
-      <form id="analysisForm">
-        <div class="field">
-          <label>Frames to Skip (process 1 out of N frames)</label>
-          <input type="range" id="frameSkip" min="1" max="60" value="1" step="1" />
-          <div id="frameSkipValue" style="font-size:12px; color:#666;">1</div>
-        </div>
-        <div class="field">
-          <label>Site Name</label>
-          <input type="text" id="site" required />
-        </div>
-        <div class="field">
-          <label>Camera ID</label>
-          <input type="text" id="camera" required />
-        </div>
-        <div class="field">
-          <label>Video File</label>
-          <input type="file" id="video" accept="video/*" required />
-        </div>
-        <button type="submit" id="startBtn">Start Analysis</button>
-      </form>
-      <div class="progress" id="progress" style="display:none;"><span id="progressFill"></span></div>
-      <p id="status" style="margin-top:8px;"></p>
-    </div>
-
-    <div class="card" id="resultsPane" style="display:none;">
-      <h2>Results</h2>
-      <div id="violationsSummary" style="margin:6px 0; font-family: monospace; white-space: pre-wrap;"></div>
-      <pre id="resultsRaw"></pre>
-      <a id="reportLink" href="#" target="_blank" style="display:none;">Download PDF Report</a>
-    </div>
+      <!-- Results Card -->
+      <section id="resultsPane" class="bg-gray-800 rounded-xl border border-yellow-500/60 p-6 shadow-sm" style="min-height: 200px;">
+        <h2 class="text-xl font-semibold mb-2">Results & PDF</h2>
+        <p class="text-sm text-yellow-300 mb-2">After processing, download the PDF report and view structured results.</p>
+        <pre id="resultsRaw" class="bg-gray-900 text-xs p-2 rounded-md text-yellow-100" style="max-height: 240px; overflow:auto;"></pre>
+        <a id="reportLink" href="#" class="hidden bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold px-3 py-2 rounded-lg mt-2 inline-block" target="_blank">Download PDF Report</a>
+        <div id="violationsSummary" class="text-sm text-yellow-200 mt-2" style="white-space: pre-wrap;"></div>
+      </section>
+    </main>
   </div>
-
-    <script>
-    const form = document.getElementById('analysisForm')
-    const startBtn = document.getElementById('startBtn')
-    const status = document.getElementById('status')
-    const progress = document.getElementById('progress')
-    const progressFill = document.getElementById('progressFill')
-    const resultsPane = document.getElementById('resultsPane')
-    const resultsRaw = document.getElementById('resultsRaw')
-    const reportLink = document.getElementById('reportLink')
-    let analysisId = null
-    const frameSkipInput = document.getElementById('frameSkip')
-    const frameSkipValue = document.getElementById('frameSkipValue')
-    frameSkipValue.textContent = frameSkipInput.value
+  <script>
+    // UI helpers
+    const frameSkipInput = document.getElementById('frameSkip');
+    const frameSkipValue = document.getElementById('frameSkipValue');
+    frameSkipValue.textContent = frameSkipInput.value;
     frameSkipInput.addEventListener('input', () => {
-      frameSkipValue.textContent = frameSkipInput.value
+      frameSkipValue.textContent = frameSkipInput.value;
     });
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault()
-      const site = document.getElementById('site').value
-      const cam = document.getElementById('camera').value
-      const video = document.getElementById('video').files[0]
-      if (!site || !cam || !video) {
-        alert('Please provide site, camera and a video file')
-        return
+    // Drag & drop + file handling
+    const dropzone = document.getElementById('dropzone');
+    const videoInput = document.getElementById('video');
+    const videoPreview = document.getElementById('videoPreview');
+    const selectedInfo = document.getElementById('selectedInfo');
+    function handleFiles(files) {
+      if (!files || files.length === 0) return;
+      const file = files[0];
+      // Attach to input via DataTransfer (for compatibility across browsers)
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      videoInput.files = dt.files;
+      // Preview
+      videoPreview.src = URL.createObjectURL(file);
+      videoPreview.classList.remove('hidden');
+      if (selectedInfo) {
+        const mb = (file.size || 0) / (1024 * 1024);
+        selectedInfo.textContent = `Selected: ${file.name} (${mb.toFixed(2)} MB)`;
       }
-      const fd = new FormData()
-      fd.append('video', video)
-      fd.append('site_name', site)
-      fd.append('camera_id', cam)
-      fd.append('frame_skip', frameSkipInput.value)
-      const res = await fetch('/api/v1/analysis', { method:'POST', body: fd })
-      const data = await res.json()
-      analysisId = data.analysis_id
-      status.textContent = 'Submitted. Analysis ID: ' + analysisId
-      progress.style.display = 'block'
-      progressFill.style.width = '0%'
-      const poll = setInterval(async () => {
-        try {
-          const r = await fetch(`/api/v1/analysis/${analysisId}`)
-          const j = await r.json()
-          status.textContent = 'Status: ' + j.status
-          progressFill.style.width = (j.progress || 0) + '%'
-          if (j.results) {
-            resultsPane.style.display = 'block'
-            resultsRaw.textContent = JSON.stringify(j.results, null, 2)
-            // Quick violations summary in UI (optional)
-            const v = j.results.violations
-            if (v) {
-              const counts = Object.entries(v.types || {}).map(([k, val]) => `${k}: ${val}`).join(', ')
-              document.getElementById('violationsSummary').textContent = `Violations total: ${v.total_violations}  |  Rate: ${v.violation_rate?.toFixed(2) || '0'}  |  Types: ${counts}`
-            } else {
-              document.getElementById('violationsSummary').textContent = ''
-            }
-          }
-          if (j.report_path) {
-            reportLink.style.display = 'inline'
-            reportLink.href = `/api/v1/analysis/${analysisId}/report`
-          }
-          if (j.status === 'completed' || j.status === 'failed') {
-            clearInterval(poll)
-          }
-        } catch (err) {
-          // ignore transient errors
+    }
+    dropzone.addEventListener('click', () => videoInput.click());
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag-over','pulse-glow'); });
+    dropzone.addEventListener('dragleave', () => { dropzone.classList.remove('drag-over','pulse-glow'); });
+    dropzone.addEventListener('drop', (e) => { e.preventDefault(); dropzone.classList.remove('drag-over','pulse-glow'); if (e.dataTransfer?.files?.length) { handleFiles(e.dataTransfer.files); } });
+    videoInput.addEventListener('change', (e) => { if (e.target.files && e.target.files.length > 0) { handleFiles(e.target.files); } });
+
+    // Form submission / polling
+    const form = document.querySelector('#analysisForm') || null;
+    let analysisId = null;
+    const startBtn = document.getElementById('startBtn');
+    const status = document.getElementById('status');
+    const progress = document.getElementById('progress');
+    const progressFill = document.getElementById('progressFill');
+    const resultsPane = document.querySelector('#resultsPane') || null;
+    const resultsRaw = document.getElementById('resultsRaw');
+    const reportLink = document.getElementById('reportLink');
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const site = document.getElementById('site').value;
+        const cam = document.getElementById('camera').value;
+        const video = videoInput.files[0];
+        if (!site || !cam || !video) {
+          alert('Please provide site, camera and a video file');
+          return;
         }
-      }, 1000);
-    })
+        let fd = new FormData();
+        const processAllFramesInput = document.getElementById('processAllFrames');
+        const processAllFramesValue = !!(processAllFramesInput && processAllFramesInput.checked);
+        const debugAllFramesInput = document.getElementById('debugAllFrames');
+        const debugAllFramesValue = !!(debugAllFramesInput && debugAllFramesInput.checked);
+        // Upload the original video directly (simpler and more robust for now)
+        fd.append('video', video, video.name);
+        fd.append('process_all_frames', processAllFramesValue);
+        fd.append('debug_all_frames', debugAllFramesValue);
+        fd.append('site_name', site);
+        fd.append('camera_id', cam);
+        fd.append('frame_skip', frameSkipInput.value);
+        const res = await fetch('/api/v1/analysis', { method:'POST', body: fd });
+        const data = await res.json();
+        analysisId = data.analysis_id;
+        status.textContent = 'Submitted. Analysis ID: ' + analysisId;
+        progress.style.display = 'block';
+        progressFill.style.width = '0%';
+        const poll = setInterval(async () => {
+          try {
+            const r = await fetch(`/api/v1/analysis/${analysisId}`);
+            const j = await r.json();
+            status.textContent = 'Status: ' + j.status;
+            progressFill.style.width = (j.progress || 0) + '%';
+            progressFill.style.background = 'linear-gradient(90deg, #f59e0b, #facc14)';
+            if (j.results) {
+              if (resultsPane) resultsPane.style.display = 'block';
+              resultsRaw.textContent = JSON.stringify(j.results, null, 2);
+              const v = j.results.violations;
+              if (v) {
+                const counts = Object.entries(v.types || {}).map(([k, val]) => `${k}: ${val}`).join(', ');
+                document.getElementById('violationsSummary').textContent = `Violations total: ${v.total_violations}  |  Rate: ${v.violation_rate?.toFixed(2) || '0'}  |  Types: ${counts}`;
+              } else {
+                document.getElementById('violationsSummary').textContent = '';
+              }
+            }
+            if (j.report_path) {
+              reportLink.style.display = 'inline';
+              reportLink.href = `/api/v1/analysis/${analysisId}/report`;
+            }
+            if (j.status === 'completed' || j.status === 'failed') {
+              clearInterval(poll);
+            }
+          } catch (err) {
+            // ignore transient errors
+          }
+        }, 1000);
+      });
+    }
   </script>
 </body>
 </html>

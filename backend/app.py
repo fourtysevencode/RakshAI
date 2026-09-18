@@ -3,13 +3,77 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from datetime import datetime
-import cv2
+# OpenCV import is guarded to avoid startup crashes if system GL libraries
+# are unavailable in the execution environment. The headless variant should be
+# preferred (handled via dependencies) to avoid GUI dependencies like libGL.
+try:
+    import cv2  # type: ignore
+except Exception:
+    cv2 = None  # type: ignore
 import uuid
 import numpy as np
+import logging
 from typing import List, Optional
+
+# Helper to coerce boolean form values that may come in as strings (e.g., checkbox "on").
+def _to_bool(value) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    if isinstance(value, str):
+        v = value.strip().lower()
+        if v in ("1", "true", "yes", "y", "on"):  # common truthy literals
+            return True
+        if v in ("0", "false", "no", "n", "off"):  # common falsy literals
+            return False
+    return bool(value)
 
 from backend.utils.predict import predict_frame
 from backend.utils.pdf_generation import generate_pdf
+
+# Helper: downscale video to 1280x720 (maintaining aspect ratio) if larger
+def _downscale_video_to_720p(input_path: Path) -> tuple[Path, bool]:
+    # If OpenCV is not available, skip processing
+    if cv2 is None:
+        return input_path, False
+    try:
+        cap = cv2.VideoCapture(str(input_path))
+        if not cap.isOpened():
+            cap.release()
+            return input_path, False
+        w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
+        h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30
+        cap.release()
+
+        # If already within 1280x720, nothing to do
+        if w <= 1280 and h <= 720:
+            return input_path, False
+
+        scale = min(1280.0 / w, 720.0 / h)
+        new_w = max(1, int(round(w * scale)))
+        new_h = max(1, int(round(h * scale)))
+
+        out_path = input_path.with_name(input_path.stem + "_720p" + input_path.suffix)
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        cap2 = cv2.VideoCapture(str(input_path))
+        if not cap2.isOpened():
+            cap2.release()
+            return input_path, False
+        out = cv2.VideoWriter(str(out_path), fourcc, fps, (new_w, new_h))
+        while True:
+            ret, frame = cap2.read()
+            if not ret:
+                break
+            resized = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA)
+            out.write(resized)
+        cap2.release()
+        out.release()
+        return out_path, True
+    except Exception:
+        # On any failure, return original path to avoid masking real failures
+        return input_path, False
 
 # Base directories
 BASE_DIR = Path(__file__).resolve().parents[1]  # RakshAI/ (repo root)
@@ -25,6 +89,7 @@ for d in [UPLOADS_DIR, PROCESSED_DIR, REPORTS_DIR, MODELS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="RakshAI Backend API (Demo MVP)")
+logger = logging.getLogger("RakshAI.Backend")
 
 # In-memory store for analyses (simple MVP state machine)
 analyses = {}
@@ -49,6 +114,10 @@ class AnalysisSummary:
         self.events: List[dict] = []
         self.report_path: Optional[str] = None
         self.frame_skip = int(frame_skip) if frame_skip is not None else 1
+        self.process_all_frames = False
+        self.debug_all_frames = False
+
+        self.temp_video_path = None  # Path to temporary uploaded video (if any)
 
     def as_dict(self):
         return {
@@ -64,6 +133,8 @@ class AnalysisSummary:
             "events": self.events,
             "report_path": str(self.report_path) if self.report_path else None,
             "frame_skip": self.frame_skip,
+            "process_all_frames": self.process_all_frames,
+            "debug_all_frames": self.debug_all_frames,
         }
 
 
@@ -82,19 +153,27 @@ async def create_analysis(
     site_name: str = Form(...),
     camera_id: str = Form(...),
     frame_skip: int = Form(1),
+    process_all_frames: Optional[str] = Form(None),
+    debug_all_frames: Optional[str] = Form(None),
     background_tasks: BackgroundTasks = None,
 ):
-    # Store video
+    # Do not persist uploaded videos. Write to a temporary file, process, then clean up.
     video_ext = Path(video.filename).suffix or ".mp4"
     analysis_id = uuid.uuid4().hex
-    video_filename = f"{analysis_id}{video_ext}"
-    video_path = UPLOADS_DIR / video_filename
+    import tempfile
+    content = await video.read()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=video_ext) as tmp:
+        tmp.write(content)
+        tmp_path = Path(tmp.name)
 
-    with open(video_path, "wb") as f:
-        content = await video.read()
-        f.write(content)
+    # Downscale to 720p if needed for processing (temporary path may be used)
+    video_path, downscaled = _downscale_video_to_720p(tmp_path)
 
     summary = AnalysisSummary(analysis_id, site_name, camera_id, video_path, frame_skip=frame_skip)
+    summary.process_all_frames = _to_bool(process_all_frames)
+    summary.debug_all_frames = _to_bool(debug_all_frames)
+    # Record the temp file so we can delete it later
+    summary.temp_video_path = tmp_path
     analyses[analysis_id] = summary
 
     # Schedule background processing
@@ -136,6 +215,8 @@ async def _process_analysis(analysis_id: str):
         # Determine interval based on frame_skip if provided
         if analysis.frame_skip and analysis.frame_skip > 1:
             interval = max(1, int(analysis.frame_skip))
+        elif getattr(analysis, 'process_all_frames', False):
+            interval = 1
         else:
             target_fps = 5
             interval = max(1, int(round(fps / target_fps)))
@@ -143,22 +224,32 @@ async def _process_analysis(analysis_id: str):
         detections_all = []
         frame_idx = 0
         frames_analyzed = 0
+        frames_read = 0
+        logger.info(f"Processing analysis {analysis_id}: fps={fps}, frame_count={frame_count}, interval={interval}, src={video_path}")
 
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
+            frames_read += 1
             if frame_idx % interval == 0:
                 frames_analyzed += 1
                 dets = predict_frame(frame)
                 # Always log the frame with its detections (even if empty)
                 detections_all.append({"frame": frame_idx, "detections": dets})
+            if getattr(analysis, 'debug_all_frames', False):
+                logger.info(f"analysis {analysis_id}: frame={frame_idx}, interval={interval}, detections={len(dets) if 'dets' in locals() else 0}")
             frame_idx += 1
 
         cap.release()
+        frames_total = frames_read
 
         # Build a simple results payload
         total_duration = (frame_count / fps) if fps else 0.0
+        if analysis.debug_all_frames:
+            logger.info(
+                f"analysis {analysis_id} finished: frames_read={frames_total}, frames_analyzed={frames_analyzed}, interval={interval}, duration={total_duration:.2f}s, fps={fps}"
+            )
         results = {
             "duration_seconds": float(total_duration),
             "frames_processed": int(frames_analyzed),
@@ -211,6 +302,35 @@ async def _process_analysis(analysis_id: str):
         analysis.status = "failed"
         analysis.completed_at = _now_iso()
         analysis.results = {"error": str(exc)}
+    finally:
+        # Cleanup uploaded/temporary video files to avoid storage
+        try:
+            video_path = analysis.video_path
+            paths_to_remove = []
+            if isinstance(video_path, Path):
+                paths_to_remove.append(video_path)
+            # Also consider the 720p variant path if it exists
+            try:
+                p720 = video_path.with_name(video_path.stem + "_720p" + video_path.suffix)  # type: ignore
+                if isinstance(p720, Path):
+                    paths_to_remove.append(p720)
+            except Exception:
+                pass
+            for p in paths_to_remove:
+                if p.exists():
+                    try:
+                        p.unlink()
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        # Also cleanup the original temporary uploaded video if present
+        try:
+            tmp = getattr(analysis, 'temp_video_path', None)
+            if isinstance(tmp, Path) and tmp.exists():
+                tmp.unlink()
+        except Exception:
+            pass
 
 
 @app.get("/api/v1/analysis/{analysis_id}")

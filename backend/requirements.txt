@@ -4,6 +4,6 @@ numpy
 uvicorn
 onnxruntime
 ultralytics
-opencv-python
+opencv-python-headless
 reportlab
 pydantic
