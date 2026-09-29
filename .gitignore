@@ -1,1 +1,4 @@
-__pycache__
+__pycache__/
+# Uploaded videos are never persisted; existing tracked samples stay, new files are ignored
+storage/uploads/
+storage/processed/

@@ -1,8 +1,14 @@
 fastapi
+python-multipart
 pandas
 numpy
 uvicorn
 onnxruntime
-ultralytics
-opencv-python
+# The worker tracker feeds ultralytics' internal BYTETracker directly, so pin the minor version
+ultralytics~=8.4
+lap
+opencv-python-headless
+reportlab
+matplotlib
 pydantic
+pytest
