@@ -30,151 +30,115 @@ A key design principle is that raw model detections should not directly be treat
 
 ## Current Stack
 
-- **Backend:** FastAPI
+- **Backend:** FastAPI (single-worker job queue, in-memory results)
 - **Computer Vision:** OpenCV
-- **Object Detection:** Ultralytics YOLO using `models/best.onnx`
-- **Inference:** ONNX Runtime / Ultralytics
-- **Data Processing:** NumPy, Pandas
-- **Validation:** Pydantic
-- **Reporting:** PDF generation with charts and evidence frames
+- **Object Detection:** Ultralytics YOLO11n using `models/best.onnx` (10 classes: `Hardhat, Mask, NO-Hardhat, NO-Mask, NO-Safety Vest, Person, Safety Cone, Safety Vest, machinery, vehicle`)
+- **Inference:** Ultralytics, with a plain ONNX Runtime fallback
+- **Worker tracking:** ByteTrack (Ultralytics' tracker, fed with our own person detections)
+- **Reporting:** ReportLab + matplotlib (charts, worker profiles, in-memory evidence frames)
+- **Frontend:** vanilla HTML + Tailwind (Play CDN) + JS in `frontend_static/`
 
 ## Repository Structure
-
-The backend is intended to evolve toward the following structure:
 
 ```text
 RakshAI/
 ├── backend/
-│   ├── app.py
-│   ├── api/
-│   │   ├── routes_analysis.py
-│   │   ├── routes_results.py
-│   │   └── routes_health.py
+│   ├── app.py                  # FastAPI app, job queue, API routes
+│   ├── models/schemas.py       # dataclasses + PPE/class mappings
 │   ├── services/
-│   │   ├── video_service.py
-│   │   ├── inference_service.py
-│   │   ├── tracking_service.py
-│   │   ├── violation_service.py
-│   │   ├── analytics_service.py
-│   │   └── report_service.py
-│   ├── models/
-│   │   ├── schemas.py
-│   │   └── enums.py
+│   │   ├── video.py            # probing + timestamp-based frame sampling (VFR-safe)
+│   │   ├── tracking.py         # ByteTrack wrapper, duplicate person suppression
+│   │   ├── association.py      # PPE / NO-PPE boxes -> tracked worker
+│   │   ├── violations.py       # per-worker persistence/cooldown state machine
+│   │   ├── hazards.py          # worker <-> machinery/vehicle proximity (2D)
+│   │   ├── evidence.py         # in-memory thumbnails + annotated event frames
+│   │   ├── analytics.py        # per-worker summaries, PPE breakdown, timeline, findings
+│   │   └── pipeline.py         # runs the whole analysis for one video
 │   ├── utils/
-│   │   ├── predict.py
-│   │   ├── video.py
-│   │   ├── timestamps.py
-│   │   └── pdf_generation.py
-│   ├── workers/
-│   │   └── analysis_worker.py
-│   └── config.py
-├── models/
-│   └── best.onnx
-├── storage/
-│   ├── uploads/
-│   ├── processed/
-│   └── reports/
-└── requirements.txt
+│   │   ├── predict.py          # model loading + predict_frame()
+│   │   └── pdf_generation.py   # PDF report
+│   ├── tests/                  # pytest unit tests (no model needed)
+│   └── requirements.txt
+├── frontend_static/            # index.html + app.js (served at / and /frontend)
+├── models/best.onnx
+└── storage/
+    ├── uploads/                # legacy sample clips only; new uploads are never stored
+    └── reports/                # generated PDFs
 ```
 
-For the MVP, this structure does not require a distributed queue. A FastAPI background task or separate worker process is sufficient. Redis/Celery can be introduced later if concurrent analysis jobs become necessary.
+Uploaded videos are written to a temporary file, analysed, and deleted. Evidence images only exist in memory while the PDF is built. The web UI reviews footage from the user's local copy of the video.
+
+A single-worker thread pool runs one analysis at a time; further uploads wait in a queue. Redis/Celery can be introduced later if concurrent analysis jobs become necessary.
 
 ## API Design
 
-### Create an analysis
+All routes are under `/api/v1`.
 
-```http
-POST /api/v1/analysis
-```
+| Method & path | Purpose |
+|---|---|
+| `GET /health` | Model status, class list, queue length |
+| `POST /analysis` | Upload a video and queue an analysis |
+| `GET /analysis/{id}` | Status: `status`, `stage`, `progress`, `queue_position`, `frames_processed`, `eta_seconds`, `error` |
+| `DELETE /analysis/{id}` | Cancel a queued or running analysis |
+| `GET /analysis/{id}/results` | Summary, PPE breakdown, timeline buckets, occupancy, scene context, key findings |
+| `GET /analysis/{id}/persons` | Per-worker summaries |
+| `GET /analysis/{id}/events` | Violation events (filter with `?type=NO_MASK&worker_id=2`) |
+| `GET /analysis/{id}/tracks` | Per-worker boxes over time for video overlays: rows of `[t, x1, y1, x2, y2, active_types]`, 0–1 normalized |
+| `GET /analysis/{id}/frames?start=&end=&limit=` | Raw per-frame detections (debugging) |
+| `GET /analysis/{id}/report` | PDF report |
 
-Multipart form data:
-
-```text
-video: <video file>
-site_name: Construction Site A
-camera_id: CAM-03
-```
-
-Response:
-
-```json
-{
-  "analysis_id": "a83d1f",
-  "status": "queued"
-}
-```
-
-### Check analysis status
-
-```http
-GET /api/v1/analysis/{analysis_id}
-```
-
-Example response:
-
-```json
-{
-  "analysis_id": "a83d1f",
-  "status": "processing",
-  "progress": 64,
-  "frames_processed": 12840,
-  "total_frames": 20000
-}
-```
-
-Expected statuses:
+`POST /analysis` form fields:
 
 ```text
-queued
-processing
-completed
-failed
+video            <file>                  required
+site_name        Construction Site A     required
+camera_id        CAM-03                  required
+analysis_fps     5                       2 | 5 | 10 | 0 (= every frame)
+required_ppe     hardhat,vest,mask       which items count as violations
+conf_threshold   0.25
+min_violation_s  1.0                     shorter lapses are reported as "brief"
+debug            false                   per-frame server logs
 ```
 
-### Get analysis results
+Statuses: `queued`, `processing`, `completed`, `failed`, `cancelled`.
 
-```http
-GET /api/v1/analysis/{analysis_id}/results
-```
-
-Example:
+Example person (`/persons`):
 
 ```json
 {
-  "duration_seconds": 3600,
-  "workers_detected": 18,
-  "violations": {
-    "no_helmet": 31,
-    "no_safety_vest": 17,
-    "no_boots": 4
+  "worker_id": 1,
+  "label": "Worker 1",
+  "first_seen": 0.0,
+  "last_seen": 15.9,
+  "visible_s": 12.1,
+  "status": "non_compliant",
+  "severity": {"score": 31.6, "level": "high"},
+  "violation_s": 12.0,
+  "ppe": {
+    "hardhat": {"required": true, "status": "violation", "compliance": 0.43, "present_s": 5.0, "missing_s": 6.6, "unseen_s": 0.5, "events": 1},
+    "vest": {"required": true, "status": "ok", "compliance": 1.0}
   },
-  "total_violation_events": 52,
-  "violation_rate": 1.44
+  "exposure": {"machinery": 2.4, "vehicle": 0.0},
+  "best_frame": {"t": 11.0, "bbox": [0.58, 0.07, 0.83, 0.93]}
 }
 ```
 
-### Get violation timeline/events
+Worker status is `non_compliant` (at least one violation event), `compliant` (required PPE seen being worn), or `unconfirmed` (PPE never seen clearly enough). Per-item status is `violation`, `brief` (missing, but shorter than `min_violation_s`), `ok`, or `unseen`.
 
-```http
-GET /api/v1/analysis/{analysis_id}/events
-```
-
-Example event:
+Example event (`/events`):
 
 ```json
 {
-  "timestamp": 83.2,
-  "type": "NO_HELMET",
-  "confidence": 0.91,
-  "track_id": 17,
-  "duration": 4.8
+  "event_id": "ev0023",
+  "worker_id": 1,
+  "type": "NO_HARDHAT",
+  "t_start": 10.81,
+  "t_end": 15.5,
+  "duration": 4.69,
+  "peak_conf": 0.8,
+  "near_hazard": true,
+  "severity": 21.1
 }
-```
-
-### Download the PDF report
-
-```http
-GET /api/v1/analysis/{analysis_id}/report
 ```
 
 ## Processing Pipeline
@@ -344,19 +308,7 @@ This can be represented as a line/bar chart in the report.
 
 ## Evidence Frames
 
-Every significant violation should have at least one representative evidence frame saved:
-
-```text
-storage/
-└── processed/
-    └── <analysis_id>/
-        └── events/
-            ├── event_001.jpg
-            ├── event_002.jpg
-            └── event_003.jpg
-```
-
-Evidence should ideally contain the relevant worker and detection annotations. Evidence makes the generated report auditable instead of reducing it to a mysterious number produced by a neural network.
+Each violation event keeps its highest-confidence frame, annotated with the worker box and the missing item (up to the 60 most severe events), plus one thumbnail per worker. These images are held **in memory only**, embedded in the PDF and then discarded. Nothing is written to `storage/processed/`.
 
 ## PDF Report
 
@@ -503,22 +455,14 @@ This avoids failures caused by launching the application from a different workin
 
 RakshAI aims to provide a practical way to analyze construction-site footage, quantify observed PPE safety violations, surface when and how violations occur, and provide evidence-backed PDF reports for human review.
 
-## Backend API Quickstart (API only, model.onnx usage via notebooks)
+## Quickstart
 
-- Prerequisites: Python 3.9+ (preferred 3.10+). Ensure you have a working Python environment.
-- Install dependencies:
-  - From repo root: `python -m venv venv` (optional but recommended)
-  - On macOS/Linux: `source venv/bin/activate`
-  - Then install: `pip install -r backend/requirements.txt`
-- Ensure the ONNX model is available at: `models/best.onnx` (path relative to repo root).
-- Run the API server (backend only):
-  - `uvicorn backend.app:app --reload --port 8000 --host 0.0.0.0`
-- API endpoints (MVP):
-  - POST /api/v1/analysis: submit a video (multipart) with site_name and camera_id. Returns analysis_id.
-  - GET /api/v1/analysis/{analysis_id}: get analysis status and metadata.
-  - GET /api/v1/analysis/{analysis_id}/results: get results payload.
-  - GET /api/v1/analysis/{analysis_id}/events: get events payload.
-  - GET /api/v1/analysis/{analysis_id}/report: download generated PDF report (if completed).
+- Python 3.9+. From the repo root:
+  - `python -m venv venv && source venv/bin/activate` (optional)
+  - `pip install -r backend/requirements.txt`
+- The model must be at `models/best.onnx`.
+- Run: `./start_all.sh` (or `uvicorn backend.app:app --port 8000`), then open http://localhost:8000.
+- Tests: `python -m pytest backend/tests`
 - Notes:
-  - The MVP uses an in-memory store for analyses. For real deployments, migrate to a persistent DB.
-  - The ONNX model can be exercised via the predict_frame function in backend/utils/predict.py; if the model cannot be loaded, a graceful fallback yields empty detections.
+  - Analyses and results live in memory and are lost on restart; PDFs in `storage/reports/` remain.
+  - If the model can't be loaded, analyses fail with an error rather than reporting "no detections".
