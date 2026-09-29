@@ -34,7 +34,7 @@ app = FastAPI(title="RakshAI Backend API")
 # Allow the separately hosted frontend (Vercel production + preview URLs) to call the API
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=os.environ.get("RAKSHAI_CORS_ORIGIN_REGEX", r"https://raksh-ai[a-z0-9-]*\.vercel\.app"),
+    allow_origin_regex=os.environ.get("RAKSHAI_CORS_ORIGIN_REGEX", r"https://(raksh-ai[a-z0-9-]*\.vercel\.app|rakshai\.ronakbuilds\.tech)"),
     allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
     expose_headers=["Content-Disposition"],
