@@ -1,0 +1,7 @@
+{
+  "framework": null,
+  "installCommand": "true",
+  "buildCommand": "echo \"window.RAKSHAI_API_ORIGIN = 'https://fourtysevencode-rakshai.hf.space';\" > frontend_static/config.js",
+  "outputDirectory": "frontend_static",
+  "rewrites": [{ "source": "/frontend/:path*", "destination": "/:path*" }]
+}

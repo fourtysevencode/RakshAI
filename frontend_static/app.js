@@ -3,7 +3,9 @@
 // local file, so the server never has to keep footage.
 'use strict';
 
-const API = '/api/v1';
+// Backend origin: empty when served by the backend itself; config.js sets it for a
+// separately hosted frontend (e.g. Vercel -> Hugging Face Space).
+const API = (window.RAKSHAI_API_ORIGIN || '').replace(/\/$/, '') + '/api/v1';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 

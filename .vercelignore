@@ -1,0 +1,9 @@
+# Vercel hosts only the static frontend; the Python backend runs on the Hugging Face Space
+backend
+models
+storage
+experiments
+scripts
+nginx
+Dockerfile
+start_all.sh

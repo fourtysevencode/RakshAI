@@ -1,4 +1,5 @@
 import logging
+import os
 import shutil
 import tempfile
 import threading
@@ -10,6 +11,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -29,6 +31,14 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 logger = logging.getLogger("RakshAI.Backend")
 
 app = FastAPI(title="RakshAI Backend API")
+# Allow the separately hosted frontend (Vercel production + preview URLs) to call the API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=os.environ.get("RAKSHAI_CORS_ORIGIN_REGEX", r"https://raksh-ai[a-z0-9-]*\.vercel\.app"),
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
+)
 
 # One analysis at a time: inference is CPU-bound, so parallel jobs only slow each
 # other down (and the server). Further uploads wait in the queue.
