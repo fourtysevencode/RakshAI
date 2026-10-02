@@ -60,7 +60,19 @@
       #drawer { transform: translateY(100%); }
       #drawer.open { transform: translateY(0); }
     }
-    input[type=range] { accent-color: #F5B400; }
+    /* Sliders: thin track, filled up to the thumb via --p (set in app.js) */
+    .range { -webkit-appearance: none; appearance: none; width: 100%; height: 20px; background: transparent; cursor: pointer; }
+    .range:focus { outline: none; }
+    .range::-webkit-slider-runnable-track { height: 4px; border-radius: 9999px;
+      background: linear-gradient(to right, #F5B400 var(--p, 50%), #2A3038 var(--p, 50%)); }
+    .range::-moz-range-track { height: 4px; border-radius: 9999px; background: #2A3038; }
+    .range::-moz-range-progress { height: 4px; border-radius: 9999px; background: #F5B400; }
+    .range::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 9999px;
+      background: #E8EAED; border: 0; box-shadow: 0 0 0 4px rgba(245,180,0,0.25), 0 1px 3px rgba(0,0,0,0.5); transition: box-shadow .15s; }
+    .range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 9999px; background: #E8EAED; border: 0;
+      box-shadow: 0 0 0 4px rgba(245,180,0,0.25), 0 1px 3px rgba(0,0,0,0.5); }
+    .range:hover::-webkit-slider-thumb, .range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 6px rgba(245,180,0,0.3), 0 1px 3px rgba(0,0,0,0.5); }
+    .range:hover::-moz-range-thumb, .range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 6px rgba(245,180,0,0.3), 0 1px 3px rgba(0,0,0,0.5); }
   </style>
 </head>
 <body class="min-h-screen bg-ink-950 text-fog-100 font-sans antialiased">
@@ -151,17 +163,25 @@
             </summary>
             <div class="mt-5 space-y-5">
               <label class="block">
-                <span class="flex justify-between text-sm text-fog-300"><span>Detection confidence</span><span id="confVal" class="tabular text-fog-400">0.25</span></span>
-                <input id="conf" type="range" min="0.1" max="0.9" step="0.05" value="0.25" class="mt-2 w-full" />
-                <span class="hint">Higher = fewer, surer detections.</span>
+                <span class="flex items-center justify-between text-sm text-fog-300"><span>Detection confidence</span><span id="confVal" class="rounded-md bg-ink-800 px-2 py-0.5 text-xs tabular text-fog-100">0.25</span></span>
+                <input id="conf" type="range" min="0.1" max="0.9" step="0.05" value="0.25" class="range mt-3" />
+                <span class="hint mt-1 block">Higher = fewer, surer detections.</span>
               </label>
               <label class="block">
-                <span class="flex justify-between text-sm text-fog-300"><span>Minimum violation length</span><span id="minViolVal" class="tabular text-fog-400">1.0 s</span></span>
-                <input id="minViol" type="range" min="0" max="5" step="0.5" value="1" class="mt-2 w-full" />
-                <span class="hint">Shorter lapses are reported as “brief”, not as violations.</span>
+                <span class="flex items-center justify-between text-sm text-fog-300"><span>Minimum violation length</span><span id="minViolVal" class="rounded-md bg-ink-800 px-2 py-0.5 text-xs tabular text-fog-100">1.0 s</span></span>
+                <input id="minViol" type="range" min="0" max="5" step="0.5" value="1" class="range mt-3" />
+                <span class="hint mt-1 block">Shorter lapses are reported as “brief”, not as violations.</span>
               </label>
-              <label class="flex items-center gap-2 text-sm text-fog-300">
-                <input id="debug" type="checkbox" class="accent-[#F5B400]" /> Verbose server logs
+              <label class="flex cursor-pointer items-center justify-between gap-4">
+                <span>
+                  <span class="block text-sm text-fog-300">Verbose server logs</span>
+                  <span class="hint">Log every analysed frame on the server.</span>
+                </span>
+                <span class="relative inline-flex shrink-0">
+                  <input id="debug" type="checkbox" class="peer sr-only" />
+                  <span class="h-5 w-9 rounded-full bg-ink-700 shadow-inset transition peer-checked:bg-brand peer-focus-visible:ring-2 peer-focus-visible:ring-brand/50"></span>
+                  <span class="pointer-events-none absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-fog-100 shadow transition peer-checked:translate-x-4"></span>
+                </span>
               </label>
             </div>
           </details>

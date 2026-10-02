@@ -173,6 +173,9 @@ function initSetup() {
     chip.setAttribute('aria-pressed', chip.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
   }));
   $$('input[name=fps]').forEach((r) => r.addEventListener('change', updateFpsHint));
+  // Slider fill: --p drives the filled part of the track
+  const fill = (el) => el.style.setProperty('--p', `${100 * (el.value - el.min) / (el.max - el.min)}%`);
+  $$('.range').forEach((el) => { fill(el); el.addEventListener('input', () => fill(el)); });
   $('#conf').addEventListener('input', (e) => { $('#confVal').textContent = Number(e.target.value).toFixed(2); });
   $('#minViol').addEventListener('input', (e) => { $('#minViolVal').textContent = `${Number(e.target.value).toFixed(1)} s`; });
   $('#analysisForm').addEventListener('submit', (e) => { e.preventDefault(); startAnalysis(); });
