@@ -46,6 +46,9 @@ _executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="analysis")
 _lock = threading.Lock()
 _queue: List[str] = []
 
+# Used when the upload form leaves site name / camera ID blank
+DEFAULT_SITE_NAME = "Untitled site"
+DEFAULT_CAMERA_ID = "CAM-01"
 ANALYSIS_FPS_CHOICES = (0.0, 2.0, 5.0, 10.0)
 
 
@@ -210,8 +213,8 @@ def health():
 @app.post("/api/v1/analysis")
 def create_analysis(
     video: UploadFile = File(...),
-    site_name: str = Form(...),
-    camera_id: str = Form(...),
+    site_name: str = Form(""),
+    camera_id: str = Form(""),
     analysis_fps: float = Form(5.0),
     required_ppe: str = Form(",".join(PPE_ITEMS)),
     conf_threshold: float = Form(0.25),
@@ -241,7 +244,7 @@ def create_analysis(
         analysis_fps=analysis_fps, required_ppe=required, conf_threshold=conf_threshold,
         min_violation_s=min_violation_s, debug=debug,
     )
-    job = Job(analysis_id, site_name.strip(), camera_id.strip(), video.filename or "video", settings, tmp_path)
+    job = Job(analysis_id, site_name.strip() or DEFAULT_SITE_NAME, camera_id.strip() or DEFAULT_CAMERA_ID, video.filename or "video", settings, tmp_path)
     analyses[analysis_id] = job
     with _lock:
         _queue.append(analysis_id)
