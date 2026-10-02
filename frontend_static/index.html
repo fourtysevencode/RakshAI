@@ -147,11 +147,11 @@
 
           <fieldset>
             <legend class="label">Analysis detail</legend>
-            <div class="seg mt-2 grid grid-cols-2 gap-1 rounded-lg border border-ink-700 bg-ink-950/60 p-1 text-sm shadow-inset sm:h-10 sm:grid-cols-4 sm:gap-0" role="radiogroup">
-              <label class="cursor-pointer"><input type="radio" name="fps" value="2" class="sr-only"><span class="grid h-8 place-items-center rounded-md text-fog-300 transition sm:h-full">Fast</span></label>
-              <label class="cursor-pointer"><input type="radio" name="fps" value="5" class="sr-only" checked><span class="grid h-8 place-items-center rounded-md text-fog-300 transition sm:h-full">Balanced</span></label>
-              <label class="cursor-pointer"><input type="radio" name="fps" value="10" class="sr-only"><span class="grid h-8 place-items-center rounded-md text-fog-300 transition sm:h-full">Thorough</span></label>
-              <label class="cursor-pointer"><input type="radio" name="fps" value="0" class="sr-only"><span class="grid h-8 place-items-center rounded-md text-fog-300 transition sm:h-full">All frames</span></label>
+            <div class="seg mt-2 grid h-10 grid-cols-4 rounded-lg border border-ink-700 bg-ink-950/60 p-1 text-[13px] shadow-inset sm:text-sm" role="radiogroup">
+              <label class="cursor-pointer"><input type="radio" name="fps" value="2" class="sr-only"><span class="grid h-full place-items-center rounded-md text-fog-300 transition">Fast</span></label>
+              <label class="cursor-pointer"><input type="radio" name="fps" value="5" class="sr-only" checked><span class="grid h-full place-items-center rounded-md text-fog-300 transition">Balanced</span></label>
+              <label class="cursor-pointer"><input type="radio" name="fps" value="10" class="sr-only"><span class="grid h-full place-items-center rounded-md text-fog-300 transition">Thorough</span></label>
+              <label class="cursor-pointer"><input type="radio" name="fps" value="0" class="sr-only"><span class="grid h-full place-items-center rounded-md text-fog-300 transition"><span class="sm:hidden">All</span><span class="hidden sm:inline">All frames</span></span></label>
             </div>
             <p id="fpsHint" class="hint mt-2 tabular">5 frames per second of video.</p>
           </fieldset>
