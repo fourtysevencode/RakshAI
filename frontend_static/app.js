@@ -222,7 +222,6 @@ async function startAnalysis() {
   const site = $('#site').value.trim(), cam = $('#camera').value.trim();
   const ppe = requiredPpe();
   if (!state.file) return showFormError('Choose a video first.');
-  if (!site || !cam) return showFormError('Enter a site name and camera ID.');
   if (!ppe.length) return showFormError('Select at least one required PPE item.');
   showFormError('');
 
@@ -237,7 +236,8 @@ async function startAnalysis() {
   fd.append('debug', $('#debug').checked ? 'true' : 'false');
 
   show('progressView');
-  $('#progressSubject').textContent = `${site} · ${cam} · ${state.file.name}`;
+  // Blank site/camera are fine: the server fills in defaults
+  $('#progressSubject').textContent = `${site || 'Untitled site'} · ${cam || 'CAM-01'} · ${state.file.name}`;
   $('#progressError').classList.add('hidden');
   $('#progressActions').classList.add('hidden');
   $('#cancelBtn').classList.remove('hidden');
