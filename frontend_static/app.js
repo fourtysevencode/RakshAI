@@ -344,10 +344,10 @@ function renderKpis(s) {
       sub: s.longest_event ? `${s.longest_event.worker} · ${s.longest_event.label}` : '' },
   ];
   $('#kpis').innerHTML = tiles.map((t, i) => `
-    <div class="card p-5 ${i === tiles.length - 1 ? 'col-span-2 md:col-span-1' : ''}">
+    <div class="card p-5 text-center ${i === tiles.length - 1 ? 'col-span-2 md:col-span-1' : ''}">
       <p class="text-sm text-fog-400">${esc(t.l)}</p>
       <p class="mt-2 text-2xl sm:text-3xl font-semibold leading-none tracking-tight tabular ${t.tone || ''}">${esc(t.v)}</p>
-      ${t.sub ? `<p class="text-xs text-fog-500 mt-2 truncate">${esc(t.sub)}</p>` : ''}
+      <p class="text-xs text-fog-500 mt-2 truncate ${t.sub ? '' : 'invisible'}" ${t.sub ? '' : 'aria-hidden="true"'}>${t.sub ? esc(t.sub) : '&nbsp;'}</p>
     </div>`).join('');
 }
 
