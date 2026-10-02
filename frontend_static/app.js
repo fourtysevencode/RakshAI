@@ -335,19 +335,25 @@ function renderResults() {
 }
 
 function renderKpis(s) {
+  const peak = state.results.scene?.peak_workers ?? 0;
+  const n = s.workers_observed;
+  // Every tile gets a short note so all five share the same layout
   const tiles = [
-    { v: s.workers_observed, l: 'Workers observed' },
-    { v: s.workers_non_compliant, l: 'With violations', tone: s.workers_non_compliant ? 'text-bad' : 'text-ok' },
-    { v: fmtPct(s.overall_compliance), l: 'PPE compliance' },
-    { v: s.total_events, l: 'Violation events', tone: s.total_events ? 'text-bad' : 'text-ok' },
+    { v: n, l: 'Workers observed', sub: n ? `Up to ${peak} in frame at once` : 'No one tracked' },
+    { v: s.workers_non_compliant, l: 'With violations', tone: s.workers_non_compliant ? 'text-bad' : 'text-ok',
+      sub: `of ${n} worker${n === 1 ? '' : 's'}` },
+    { v: fmtPct(s.overall_compliance), l: 'PPE compliance',
+      sub: s.overall_compliance == null ? 'PPE not seen clearly' : 'of observed worker-time' },
+    { v: s.total_events, l: 'Violation events', tone: s.total_events ? 'text-bad' : 'text-ok',
+      sub: s.total_events ? `avg ${fmtDur(s.avg_event_s)} each` : 'None sustained' },
     { v: s.longest_event ? fmtDur(s.longest_event.duration) : '–', l: 'Longest violation',
-      sub: s.longest_event ? `${s.longest_event.worker} · ${s.longest_event.label}` : '' },
+      sub: s.longest_event ? `${s.longest_event.worker} · ${s.longest_event.label}` : 'None' },
   ];
   $('#kpis').innerHTML = tiles.map((t, i) => `
     <div class="card p-5 text-center ${i === tiles.length - 1 ? 'col-span-2 md:col-span-1' : ''}">
       <p class="text-sm text-fog-400">${esc(t.l)}</p>
       <p class="mt-2 text-2xl sm:text-3xl font-semibold leading-none tracking-tight tabular ${t.tone || ''}">${esc(t.v)}</p>
-      <p class="text-xs text-fog-500 mt-2 truncate ${t.sub ? '' : 'invisible'}" ${t.sub ? '' : 'aria-hidden="true"'}>${t.sub ? esc(t.sub) : '&nbsp;'}</p>
+      <p class="text-xs text-fog-500 mt-2 truncate">${esc(t.sub)}</p>
     </div>`).join('');
 }
 
