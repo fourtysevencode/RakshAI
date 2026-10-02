@@ -324,7 +324,7 @@ function renderResults() {
   $('#framesLink').href = `${API}/analysis/${state.analysisId}/frames?limit=200`;
   renderKpis(s);
   $('#findings').innerHTML = r.findings.map((f) =>
-    `<li class="flex gap-2.5"><span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-brand shrink-0"></span><span>${esc(f)}</span></li>`).join('');
+    `<li class="flex gap-3"><span class="mt-2 w-1.5 h-1.5 rounded-full bg-brand shrink-0"></span><span>${esc(f)}</span></li>`).join('');
   renderPpeBars(r.ppe);
   renderWorkerFilters();
   renderWorkers();
@@ -344,10 +344,10 @@ function renderKpis(s) {
       sub: s.longest_event ? `${s.longest_event.worker} · ${s.longest_event.label}` : '' },
   ];
   $('#kpis').innerHTML = tiles.map((t, i) => `
-    <div class="bg-ink-900 border border-ink-700 rounded-xl p-4 ${i === tiles.length - 1 ? 'col-span-2 md:col-span-1' : ''}">
-      <p class="text-2xl sm:text-3xl font-semibold tabular ${t.tone || ''}">${esc(t.v)}</p>
-      <p class="text-sm text-fog-400 mt-1">${esc(t.l)}</p>
-      ${t.sub ? `<p class="text-xs text-fog-500 mt-0.5 truncate">${esc(t.sub)}</p>` : ''}
+    <div class="card p-5 ${i === tiles.length - 1 ? 'col-span-2 md:col-span-1' : ''}">
+      <p class="text-sm text-fog-400">${esc(t.l)}</p>
+      <p class="mt-2 text-2xl sm:text-3xl font-semibold leading-none tracking-tight tabular ${t.tone || ''}">${esc(t.v)}</p>
+      ${t.sub ? `<p class="text-xs text-fog-500 mt-2 truncate">${esc(t.sub)}</p>` : ''}
     </div>`).join('');
 }
 
@@ -364,12 +364,12 @@ function renderPpeBars(ppe) {
         <span>${esc(b.label)}${b.required ? '' : ' <span class="text-xs text-fog-500">not required</span>'}</span>
         <span class="tabular font-medium">${pct == null ? '–' : pct + '%'}</span>
       </div>
-      <div class="mt-1.5 h-2.5 rounded-full bg-ink-800 overflow-hidden" role="img" aria-label="${esc(b.label)} compliance ${pct ?? 'unknown'}%">
+      <div class="mt-2 h-2 rounded-full bg-ink-800 overflow-hidden" role="img" aria-label="${esc(b.label)} compliance ${pct ?? 'unknown'}%">
         <div class="h-full rounded-full" style="width:${pct ?? 0}%;background:${color}"></div>
       </div>
-      <p class="text-xs text-fog-500 mt-1">${detail}</p>
+      <p class="text-xs text-fog-500 mt-2">${detail}</p>
     </div>`;
-  }).join('') + '<p class="text-xs text-fog-500">Boots are not assessed (no footwear class in the model).</p>';
+  }).join('') + '<p class="text-xs text-fog-500 pt-1">Boots are not assessed (no footwear class in the model).</p>';
 }
 
 // ---------------------------------------------------------------- workers
@@ -400,7 +400,7 @@ function renderWorkerFilters() {
     .filter(([k]) => k === 'all' || counts[k]);
   $('#workerFilters').innerHTML = opts.map(([k, l]) =>
     `<button type="button" data-filter="${k}" aria-pressed="${state.workerFilter === k}"
-      class="rounded-md px-3 py-1.5 ${state.workerFilter === k ? 'bg-ink-700 text-fog-100' : 'text-fog-400 hover:text-fog-100'}">${l} <span class="text-fog-500 tabular">${counts[k] || 0}</span></button>`).join('');
+      class="inline-flex h-7 items-center gap-1.5 rounded-md px-3 ${state.workerFilter === k ? 'bg-ink-700 text-fog-100 shadow-sm' : 'text-fog-400 hover:text-fog-100'}">${l} <span class="text-fog-500 tabular">${counts[k] || 0}</span></button>`).join('');
 }
 
 function thumbHtml(p, cls) {
@@ -426,9 +426,9 @@ function renderWorkers() {
     if (p.exposure.machinery) exp.push(`near machinery ${fmtDur(p.exposure.machinery)}`);
     if (p.exposure.vehicle) exp.push(`near vehicles ${fmtDur(p.exposure.vehicle)}`);
     return `<button type="button" data-worker="${p.worker_id}"
-      class="text-left bg-ink-900 border border-ink-700 rounded-xl overflow-hidden hover:border-fog-500 focus:outline-none focus-visible:border-brand transition-colors">
-      <div class="flex gap-4 p-4">
-        <div class="w-20 h-28 rounded-md bg-ink-800 overflow-hidden shrink-0">${thumbHtml(p, 'w-full h-full')}</div>
+      class="card text-left overflow-hidden transition hover:border-white/[0.12] hover:bg-ink-850 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50">
+      <div class="flex gap-4 p-5">
+        <div class="w-20 h-28 rounded-lg bg-ink-800 overflow-hidden shrink-0 ring-1 ring-white/[0.06]">${thumbHtml(p, 'w-full h-full')}</div>
         <div class="min-w-0 flex-1">
           <div class="flex items-center justify-between gap-2">
             <h3 class="font-semibold">${esc(p.label)}</h3>
@@ -436,7 +436,7 @@ function renderWorkers() {
               ? `<span class="text-xs rounded-full px-2 py-0.5 ${sev.cls}">${sev.label}</span>`
               : `<span class="text-xs rounded-full px-2 py-0.5 ${p.status === 'compliant' ? 'text-ok bg-ok/10' : 'text-fog-400 bg-ink-800'}">${WORKER_STATUS[p.status]}</span>`}
           </div>
-          <p class="text-xs text-fog-500 tabular mt-0.5">${fmtTs(p.first_seen)} – ${fmtTs(p.last_seen)} · ${fmtDur(p.visible_s)} visible</p>
+          <p class="text-xs text-fog-500 tabular mt-1">${fmtTs(p.first_seen)} – ${fmtTs(p.last_seen)} · ${fmtDur(p.visible_s)} visible</p>
           <div class="mt-3 flex flex-wrap gap-1.5">${Object.entries(p.ppe).map(ppeChip).join('')}</div>
           <p class="mt-3 text-xs text-fog-400">${nEv ? `${nEv} event${nEv === 1 ? '' : 's'} · ${fmtDur(p.violation_s)} in violation (${fmtPct(p.violation_share)})` : 'No violation events'}${exp.length ? ' · ' + exp.join(', ') : ''}</p>
         </div>
@@ -489,8 +489,8 @@ function openWorker(wid) {
 
   $('#drawerBody').innerHTML = `
     <div class="flex gap-4">
-      <div class="w-24 h-32 rounded-lg bg-ink-800 overflow-hidden shrink-0">${thumbHtml(p, 'w-full h-full')}</div>
-      <dl class="text-sm grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 content-start">
+      <div class="w-24 h-32 rounded-lg bg-ink-800 overflow-hidden shrink-0 ring-1 ring-white/[0.06]">${thumbHtml(p, 'w-full h-full')}</div>
+      <dl class="text-sm grid grid-cols-[auto,1fr] gap-x-4 gap-y-1.5 content-start">
         ${facts.map(([k, v]) => `<dt class="text-fog-500">${k}</dt><dd class="tabular">${v}</dd>`).join('')}
       </dl>
     </div>
@@ -534,18 +534,18 @@ function renderEvents() {
   $$('thead [data-sort]').forEach((b) => {
     const active = b.dataset.sort === state.evSort.key;
     b.innerHTML = b.textContent.replace(/[ ▲▼]+$/, '') + (active ? (state.evSort.dir > 0 ? ' ▲' : ' ▼') : '');
-    b.className = `uppercase tracking-wide ${active ? 'text-fog-100' : 'hover:text-fog-100'}`;
+    b.className = active ? 'text-fog-100' : 'hover:text-fog-100';
   });
   $('#eventRows').innerHTML = list.map((e) => {
     const sevLevel = e.severity >= 15 ? 'high' : e.severity >= 5 ? 'medium' : 'low';
-    return `<tr class="border-b border-ink-800 hover:bg-ink-850 cursor-pointer" data-seek="${e.t_start}">
-      <td class="py-2.5 px-4 sm:px-2"><button type="button" data-worker="${e.worker_id}" class="hover:text-brand underline-offset-2 hover:underline">${esc(e.worker)}</button></td>
-      <td class="py-2.5 px-2"><span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-sm" style="background:${TYPES[e.type].color}"></span>${esc(e.label)}</span></td>
-      <td class="py-2.5 px-2">${fmtTs(e.t_start)}</td>
-      <td class="py-2.5 px-2">${fmtDur(e.duration)}</td>
-      <td class="py-2.5 px-2">${e.peak_conf.toFixed(2)}</td>
-      <td class="py-2.5 px-2 ${e.near_hazard ? 'text-warn' : 'text-fog-500'}">${e.near_hazard ? 'Near machinery/vehicle' : '–'}</td>
-      <td class="py-2.5 px-2"><span class="rounded px-1.5 py-0.5 text-xs ${SEVERITY[sevLevel].cls}">${e.severity.toFixed(1)}</span></td>
+    return `<tr class="border-b border-white/[0.05] last:border-0 hover:bg-ink-850 cursor-pointer" data-seek="${e.t_start}">
+      <td class="py-3 px-3 first:pl-0"><button type="button" data-worker="${e.worker_id}" class="hover:text-brand underline-offset-2 hover:underline">${esc(e.worker)}</button></td>
+      <td class="py-3 px-3"><span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-sm" style="background:${TYPES[e.type].color}"></span>${esc(e.label)}</span></td>
+      <td class="py-3 px-3">${fmtTs(e.t_start)}</td>
+      <td class="py-3 px-3">${fmtDur(e.duration)}</td>
+      <td class="py-3 px-3">${e.peak_conf.toFixed(2)}</td>
+      <td class="py-3 px-3 ${e.near_hazard ? 'text-warn' : 'text-fog-500'}">${e.near_hazard ? 'Near machinery/vehicle' : '–'}</td>
+      <td class="py-3 px-3 last:pr-0"><span class="rounded-md px-1.5 py-0.5 text-xs ${SEVERITY[sevLevel].cls}">${e.severity.toFixed(1)}</span></td>
     </tr>`;
   }).join('');
 }
@@ -665,7 +665,7 @@ function renderNow(t, active = workersAt(t)) {
   }
   $('#nowList').innerHTML = active.map((w) => {
     const bad = w.types.length > 0;
-    return `<li><button type="button" data-worker="${w.wid}" class="w-full text-left flex items-center gap-3 rounded-lg border border-ink-700 px-3 py-2 hover:border-fog-500">
+    return `<li><button type="button" data-worker="${w.wid}" class="w-full text-left flex items-center gap-3 rounded-lg border border-white/[0.06] bg-ink-850 px-3 py-2.5 transition hover:border-white/[0.12]">
       <span class="w-2 h-2 rounded-full ${bad ? 'bg-bad' : 'bg-ok'}"></span>
       <span class="flex-1">Worker ${w.wid}</span>
       <span class="text-xs ${bad ? 'text-bad' : 'text-ok'}">${bad ? w.types.map((k) => TYPES[k].label).join(', ') : 'PPE OK'}</span>

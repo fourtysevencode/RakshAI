@@ -11,23 +11,43 @@
         extend: {
           colors: {
             brand: { DEFAULT: '#F5B400', soft: '#F5B40022', ink: '#1A1400' },
-            ink: { 950: '#0B0D10', 900: '#111418', 850: '#161A1F', 800: '#1C2127', 700: '#2A3038', 600: '#3A414B' },
+            ink: { 950: '#0B0D10', 900: '#121519', 850: '#171B20', 800: '#1D2228', 700: '#2A3038', 600: '#3A414B' },
             fog: { 100: '#E8EAED', 300: '#B8BEC7', 400: '#9AA1AC', 500: '#7B838F' },
             ok: '#3FB67A', warn: '#F0A020', bad: '#EF5350',
           },
           fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+          boxShadow: {
+            card: 'inset 0 1px 0 0 rgba(255,255,255,0.04), 0 1px 2px 0 rgba(0,0,0,0.35), 0 10px 30px -16px rgba(0,0,0,0.55)',
+            inset: 'inset 0 1px 2px 0 rgba(0,0,0,0.35)',
+            button: 'inset 0 1px 0 0 rgba(255,255,255,0.25), 0 1px 2px 0 rgba(0,0,0,0.3), 0 6px 16px -8px rgba(245,180,0,0.45)',
+          },
         },
       },
     };
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Shared component styles: one radius, padding scale and shadow for every surface -->
+  <style type="text/tailwindcss">
+    @layer components {
+      .card { @apply rounded-2xl border border-white/[0.06] bg-ink-900 shadow-card; }
+      .card-title { @apply text-base font-semibold text-fog-100; }
+      .label { @apply block text-sm font-medium text-fog-300; }
+      .hint { @apply text-xs leading-relaxed text-fog-500; }
+      .input { @apply h-10 w-full rounded-lg border border-ink-700 bg-ink-950/60 px-3 text-sm text-fog-100 shadow-inset transition placeholder:text-fog-500 focus:border-brand/70 focus:outline-none focus:ring-2 focus:ring-brand/20; }
+      .select { @apply h-9 rounded-lg border border-ink-700 bg-ink-850 px-3 text-sm text-fog-100 transition focus:border-brand/70 focus:outline-none focus:ring-2 focus:ring-brand/20; }
+      .btn { @apply inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-950; }
+      .btn-primary { @apply btn bg-brand font-semibold text-brand-ink shadow-button hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40; }
+      .btn-secondary { @apply btn border border-ink-700 bg-ink-850 text-fog-300 hover:border-ink-600 hover:text-fog-100; }
+    }
+  </style>
   <style>
-    .drag-over { border-color: #F5B400 !important; background: #F5B40010; }
+    body { background-image: radial-gradient(1200px 520px at 50% -260px, rgba(255, 255, 255, 0.04), transparent 70%); }
+    .drag-over { border-color: #F5B400 !important; background: rgba(245, 180, 0, 0.05) !important; }
     .tabular { font-variant-numeric: tabular-nums; }
-    .seg input:checked + span { background: #F5B400; color: #1A1400; }
+    .seg input:checked + span { background: #F5B400; color: #1A1400; font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); }
     .seg input:focus-visible + span { outline: 2px solid #F5B400; outline-offset: 2px; }
-    .chip[aria-pressed="true"] { background: #F5B40022; border-color: #F5B400; color: #F5B400; }
+    .chip[aria-pressed="true"] { background: rgba(245, 180, 0, 0.1); border-color: rgba(245, 180, 0, 0.6); color: #F5C842; }
     .chip[aria-pressed="false"] { color: #7B838F; }
     .chip[aria-pressed="false"] .chip-dot { background: transparent; }
     details > summary { list-style: none; cursor: pointer; }
@@ -45,100 +65,100 @@
 </head>
 <body class="min-h-screen bg-ink-950 text-fog-100 font-sans antialiased">
   <!-- Header -->
-  <header class="border-b border-ink-700/70 bg-ink-900 sticky top-0 z-30">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
-      <a href="/" class="flex items-center gap-2.5 shrink-0">
-        <span class="w-7 h-7 rounded-md bg-brand grid place-items-center text-brand-ink font-bold text-sm">R</span>
+  <header class="sticky top-0 z-30 border-b border-white/[0.06] bg-ink-950/90 backdrop-blur supports-[backdrop-filter]:bg-ink-950/75">
+    <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <a href="/" class="flex shrink-0 items-center gap-3">
+        <span class="grid h-8 w-8 place-items-center rounded-lg bg-brand text-sm font-bold text-brand-ink shadow-button">R</span>
         <span class="font-semibold tracking-tight">RakshAI</span>
-        <span class="hidden sm:inline text-fog-500 text-sm">PPE safety analysis</span>
+        <span class="hidden text-sm text-fog-500 sm:inline">PPE safety analysis</span>
       </a>
-      <div id="modelStatus" class="flex items-center gap-2 text-xs text-fog-400 rounded-full border border-ink-700 px-3 py-1">
-        <span class="w-2 h-2 rounded-full bg-fog-500"></span><span>Checking model…</span>
+      <div id="modelStatus" class="flex items-center gap-2 rounded-full border border-white/[0.06] bg-ink-900 px-3 py-1.5 text-xs text-fog-400">
+        <span class="h-2 w-2 rounded-full bg-fog-500"></span><span>Checking model…</span>
       </div>
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+  <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
 
     <!-- ============ SETUP VIEW ============ -->
     <section id="setupView">
-      <div class="mb-6">
-        <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight">New analysis</h1>
-        <p class="text-fog-400 mt-1 text-sm">Upload site footage to check each worker's PPE. The video is analysed and then deleted from the server; only the PDF report is kept.</p>
+      <div class="mb-8">
+        <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">New analysis</h1>
+        <p class="mt-2 max-w-2xl text-sm leading-relaxed text-fog-400">Upload site footage to check each worker's PPE. The video is analysed and then deleted from the server; only the PDF report is kept.</p>
       </div>
 
-      <form id="analysisForm" class="grid grid-cols-1 lg:grid-cols-12 gap-5" novalidate>
+      <form id="analysisForm" class="grid grid-cols-1 gap-6 lg:grid-cols-12" novalidate>
         <!-- Video -->
-        <div class="lg:col-span-7 bg-ink-900 border border-ink-700 rounded-xl p-4 sm:p-5">
+        <div class="card flex flex-col p-5 sm:p-6 lg:col-span-7">
           <div id="dropzone" tabindex="0" role="button" aria-label="Choose a video file"
-               class="border-2 border-dashed border-ink-600 rounded-lg min-h-[260px] grid place-items-center text-center p-6 cursor-pointer transition-colors hover:border-fog-500 focus:outline-none focus-visible:border-brand">
+               class="grid min-h-[280px] flex-1 cursor-pointer place-items-center rounded-xl border-2 border-dashed border-ink-700 bg-ink-950/40 p-8 text-center transition-colors hover:border-ink-600 hover:bg-ink-950/60 focus:outline-none focus-visible:border-brand">
             <div>
-              <svg class="w-10 h-10 mx-auto text-fog-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
-              <p class="mt-3 font-medium">Drop a video here, or click to browse</p>
-              <p class="text-fog-500 text-sm mt-1">MP4, MOV or WebM · CCTV or phone footage</p>
+              <span class="mx-auto grid h-14 w-14 place-items-center rounded-full border border-white/[0.06] bg-ink-850 text-fog-400 shadow-card">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+              </span>
+              <p class="mt-4 font-medium">Drop a video here, or click to browse</p>
+              <p class="mt-1 text-sm text-fog-500">MP4, MOV or WebM · CCTV or phone footage</p>
             </div>
           </div>
           <div id="previewWrap" class="hidden">
-            <video id="setupPreview" class="w-full rounded-lg bg-black max-h-[420px]" controls muted playsinline></video>
-            <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-              <div id="fileMeta" class="text-fog-300 tabular min-w-0 truncate"></div>
-              <button type="button" id="changeVideo" class="text-brand hover:underline shrink-0">Change video</button>
+            <video id="setupPreview" class="max-h-[440px] w-full rounded-xl bg-black" controls muted playsinline></video>
+            <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+              <div id="fileMeta" class="min-w-0 truncate text-fog-300 tabular"></div>
+              <button type="button" id="changeVideo" class="shrink-0 font-medium text-brand hover:underline underline-offset-4">Change video</button>
             </div>
           </div>
           <input id="videoInput" type="file" accept="video/*" class="hidden" />
         </div>
 
         <!-- Settings -->
-        <div class="lg:col-span-5 bg-ink-900 border border-ink-700 rounded-xl p-4 sm:p-5 flex flex-col gap-5">
-          <div class="grid grid-cols-2 gap-3">
+        <div class="card flex flex-col gap-6 p-5 sm:p-6 lg:col-span-5">
+          <div class="grid grid-cols-2 gap-4">
             <label class="block">
-              <span class="text-sm text-fog-300">Site name <span class="text-fog-500">(optional)</span></span>
-              <input id="site" placeholder="Untitled site" autocomplete="off"
-                     class="mt-1 w-full rounded-md bg-ink-850 border border-ink-600 px-3 py-2 text-sm placeholder:text-fog-500 focus:outline-none focus:border-brand" />
+              <span class="label">Site name <span class="font-normal text-fog-500">(optional)</span></span>
+              <input id="site" placeholder="Untitled site" autocomplete="off" class="input mt-2" />
             </label>
             <label class="block">
-              <span class="text-sm text-fog-300">Camera ID <span class="text-fog-500">(optional)</span></span>
-              <input id="camera" placeholder="CAM-01" autocomplete="off"
-                     class="mt-1 w-full rounded-md bg-ink-850 border border-ink-600 px-3 py-2 text-sm placeholder:text-fog-500 focus:outline-none focus:border-brand" />
+              <span class="label">Camera ID <span class="font-normal text-fog-500">(optional)</span></span>
+              <input id="camera" placeholder="CAM-01" autocomplete="off" class="input mt-2" />
             </label>
           </div>
 
           <fieldset>
-            <legend class="text-sm text-fog-300">Required PPE <span class="text-fog-500">· counted as violations</span></legend>
+            <legend class="label">Required PPE <span class="font-normal text-fog-500">· counted as violations</span></legend>
             <div id="ppeChips" class="mt-2 flex flex-wrap gap-2">
-              <button type="button" class="chip inline-flex items-center gap-2 rounded-full border border-ink-600 px-3 py-1.5 text-sm" data-item="hardhat" aria-pressed="true"><span class="chip-dot w-2 h-2 rounded-full bg-brand border border-current"></span>Hardhat</button>
-              <button type="button" class="chip inline-flex items-center gap-2 rounded-full border border-ink-600 px-3 py-1.5 text-sm" data-item="vest" aria-pressed="true"><span class="chip-dot w-2 h-2 rounded-full bg-brand border border-current"></span>Safety vest</button>
-              <button type="button" class="chip inline-flex items-center gap-2 rounded-full border border-ink-600 px-3 py-1.5 text-sm" data-item="mask" aria-pressed="true"><span class="chip-dot w-2 h-2 rounded-full bg-brand border border-current"></span>Mask</button>
+              <button type="button" class="chip inline-flex h-9 items-center gap-2 rounded-full border border-ink-700 px-3.5 text-sm transition" data-item="hardhat" aria-pressed="true"><span class="chip-dot h-2 w-2 rounded-full border border-current bg-brand"></span>Hardhat</button>
+              <button type="button" class="chip inline-flex h-9 items-center gap-2 rounded-full border border-ink-700 px-3.5 text-sm transition" data-item="vest" aria-pressed="true"><span class="chip-dot h-2 w-2 rounded-full border border-current bg-brand"></span>Safety vest</button>
+              <button type="button" class="chip inline-flex h-9 items-center gap-2 rounded-full border border-ink-700 px-3.5 text-sm transition" data-item="mask" aria-pressed="true"><span class="chip-dot h-2 w-2 rounded-full border border-current bg-brand"></span>Mask</button>
             </div>
-            <p class="text-xs text-fog-500 mt-2">All three are still measured per worker. Boots can't be detected by the current model.</p>
+            <p class="hint mt-2">All three are still measured per worker. Boots can't be detected by the current model.</p>
           </fieldset>
 
           <fieldset>
-            <legend class="text-sm text-fog-300">Analysis detail</legend>
-            <div class="seg mt-2 grid grid-cols-4 rounded-lg bg-ink-850 border border-ink-600 p-1 text-sm" role="radiogroup">
-              <label class="cursor-pointer"><input type="radio" name="fps" value="2" class="sr-only"><span class="block text-center rounded-md py-1.5">Fast</span></label>
-              <label class="cursor-pointer"><input type="radio" name="fps" value="5" class="sr-only" checked><span class="block text-center rounded-md py-1.5">Balanced</span></label>
-              <label class="cursor-pointer"><input type="radio" name="fps" value="10" class="sr-only"><span class="block text-center rounded-md py-1.5">Thorough</span></label>
-              <label class="cursor-pointer"><input type="radio" name="fps" value="0" class="sr-only"><span class="block text-center rounded-md py-1.5">All frames</span></label>
+            <legend class="label">Analysis detail</legend>
+            <div class="seg mt-2 grid h-10 grid-cols-4 rounded-lg border border-ink-700 bg-ink-950/60 p-1 text-sm shadow-inset" role="radiogroup">
+              <label class="cursor-pointer"><input type="radio" name="fps" value="2" class="sr-only"><span class="grid h-full place-items-center rounded-md text-fog-300 transition">Fast</span></label>
+              <label class="cursor-pointer"><input type="radio" name="fps" value="5" class="sr-only" checked><span class="grid h-full place-items-center rounded-md text-fog-300 transition">Balanced</span></label>
+              <label class="cursor-pointer"><input type="radio" name="fps" value="10" class="sr-only"><span class="grid h-full place-items-center rounded-md text-fog-300 transition">Thorough</span></label>
+              <label class="cursor-pointer"><input type="radio" name="fps" value="0" class="sr-only"><span class="grid h-full place-items-center rounded-md text-fog-300 transition">All frames</span></label>
             </div>
-            <p id="fpsHint" class="text-xs text-fog-500 mt-2 tabular">5 frames per second of video.</p>
+            <p id="fpsHint" class="hint mt-2 tabular">5 frames per second of video.</p>
           </fieldset>
 
-          <details class="group border-t border-ink-700 pt-4">
-            <summary class="flex items-center gap-2 text-sm text-fog-300 select-none">
-              <svg class="chev w-3.5 h-3.5 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path d="M7 5l6 5-6 5V5z"/></svg>
+          <details class="group border-t border-white/[0.06] pt-5">
+            <summary class="flex select-none items-center gap-2 text-sm font-medium text-fog-300 hover:text-fog-100">
+              <svg class="chev h-3.5 w-3.5 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path d="M7 5l6 5-6 5V5z"/></svg>
               Advanced
             </summary>
-            <div class="mt-4 space-y-4">
+            <div class="mt-5 space-y-5">
               <label class="block">
                 <span class="flex justify-between text-sm text-fog-300"><span>Detection confidence</span><span id="confVal" class="tabular text-fog-400">0.25</span></span>
-                <input id="conf" type="range" min="0.1" max="0.9" step="0.05" value="0.25" class="w-full mt-1" />
-                <span class="text-xs text-fog-500">Higher = fewer, surer detections.</span>
+                <input id="conf" type="range" min="0.1" max="0.9" step="0.05" value="0.25" class="mt-2 w-full" />
+                <span class="hint">Higher = fewer, surer detections.</span>
               </label>
               <label class="block">
                 <span class="flex justify-between text-sm text-fog-300"><span>Minimum violation length</span><span id="minViolVal" class="tabular text-fog-400">1.0 s</span></span>
-                <input id="minViol" type="range" min="0" max="5" step="0.5" value="1" class="w-full mt-1" />
-                <span class="text-xs text-fog-500">Shorter lapses are reported as “brief”, not as violations.</span>
+                <input id="minViol" type="range" min="0" max="5" step="0.5" value="1" class="mt-2 w-full" />
+                <span class="hint">Shorter lapses are reported as “brief”, not as violations.</span>
               </label>
               <label class="flex items-center gap-2 text-sm text-fog-300">
                 <input id="debug" type="checkbox" class="accent-[#F5B400]" /> Verbose server logs
@@ -146,190 +166,185 @@
             </div>
           </details>
 
-          <div class="mt-auto pt-2">
-            <p id="formError" class="hidden text-sm text-bad mb-2" role="alert"></p>
-            <button id="startBtn" type="submit"
-                    class="w-full rounded-lg bg-brand text-brand-ink font-semibold py-2.5 hover:brightness-105 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-ink-900">
-              Start analysis
-            </button>
+          <div class="mt-auto">
+            <p id="formError" class="mb-3 hidden text-sm text-bad" role="alert"></p>
+            <button id="startBtn" type="submit" class="btn-primary h-11 w-full">Start analysis</button>
           </div>
         </div>
       </form>
     </section>
 
     <!-- ============ PROGRESS VIEW ============ -->
-    <section id="progressView" class="hidden max-w-2xl mx-auto">
-      <div class="bg-ink-900 border border-ink-700 rounded-xl p-5 sm:p-6">
+    <section id="progressView" class="mx-auto hidden max-w-2xl">
+      <div class="card p-6 sm:p-8">
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0">
             <h2 class="text-lg font-semibold">Analysing footage</h2>
-            <p id="progressSubject" class="text-sm text-fog-400 truncate"></p>
+            <p id="progressSubject" class="mt-1 truncate text-sm text-fog-400"></p>
           </div>
-          <button id="cancelBtn" type="button" class="shrink-0 text-sm rounded-md border border-ink-600 px-3 py-1.5 text-fog-300 hover:border-bad hover:text-bad">Cancel</button>
+          <button id="cancelBtn" type="button" class="btn-secondary h-9 shrink-0 hover:border-bad/60 hover:text-bad">Cancel</button>
         </div>
-        <ol id="stepper" class="mt-6 grid grid-cols-4 gap-2 text-xs"></ol>
-        <div class="mt-6 h-2 rounded-full bg-ink-800 overflow-hidden">
-          <div id="progressFill" class="h-full bg-brand transition-[width] duration-500 ease-out" style="width:0%"></div>
+        <ol id="stepper" class="mt-8 grid grid-cols-4 gap-3 text-xs"></ol>
+        <div class="mt-8 h-2 overflow-hidden rounded-full bg-ink-800 shadow-inset">
+          <div id="progressFill" class="h-full rounded-full bg-brand transition-[width] duration-500 ease-out" style="width:0%"></div>
         </div>
-        <div class="mt-3 flex justify-between text-sm tabular" aria-live="polite">
+        <div class="mt-3 flex justify-between gap-4 text-sm tabular" aria-live="polite">
           <span id="progressText" class="text-fog-300">Uploading…</span>
           <span id="progressEta" class="text-fog-500"></span>
         </div>
-        <p id="progressError" class="hidden mt-4 text-sm text-bad" role="alert"></p>
-        <div id="progressActions" class="hidden mt-4 flex gap-3">
-          <button id="retryBtn" type="button" class="rounded-md bg-brand text-brand-ink font-semibold px-4 py-2 text-sm">Try again</button>
-          <button type="button" data-action="new" class="rounded-md border border-ink-600 px-4 py-2 text-sm text-fog-300">New analysis</button>
+        <p id="progressError" class="mt-6 hidden text-sm text-bad" role="alert"></p>
+        <div id="progressActions" class="mt-4 hidden flex gap-3">
+          <button id="retryBtn" type="button" class="btn-primary">Try again</button>
+          <button type="button" data-action="new" class="btn-secondary">New analysis</button>
         </div>
       </div>
     </section>
 
     <!-- ============ RESULTS VIEW ============ -->
     <section id="resultsView" class="hidden">
-      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+      <div class="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div class="min-w-0">
-          <p id="resMeta" class="text-sm text-fog-500 truncate"></p>
-          <h1 id="resTitle" class="text-2xl sm:text-3xl font-semibold tracking-tight truncate"></h1>
+          <p id="resMeta" class="truncate text-sm text-fog-500"></p>
+          <h1 id="resTitle" class="mt-1 truncate text-2xl font-semibold tracking-tight sm:text-3xl"></h1>
         </div>
-        <div class="flex flex-wrap gap-2 shrink-0">
-          <a id="pdfBtn" href="#" class="inline-flex items-center gap-2 rounded-lg bg-brand text-brand-ink font-semibold px-4 py-2 text-sm hover:brightness-105">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0 4-4m-4 4-4-4M4 20h16"/></svg>
+        <div class="flex shrink-0 flex-wrap gap-2">
+          <a id="pdfBtn" href="#" class="btn-primary">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0 4-4m-4 4-4-4M4 20h16"/></svg>
             PDF report
           </a>
-          <button id="csvBtn" type="button" class="rounded-lg border border-ink-600 px-4 py-2 text-sm text-fog-300 hover:border-fog-500">Export CSV</button>
-          <button type="button" data-action="new" class="rounded-lg border border-ink-600 px-4 py-2 text-sm text-fog-300 hover:border-fog-500">New analysis</button>
+          <button id="csvBtn" type="button" class="btn-secondary">Export CSV</button>
+          <button type="button" data-action="new" class="btn-secondary">New analysis</button>
         </div>
       </div>
 
       <!-- KPIs -->
-      <div id="kpis" class="grid grid-cols-2 md:grid-cols-5 gap-3"></div>
+      <div id="kpis" class="grid grid-cols-2 gap-4 md:grid-cols-5"></div>
 
       <!-- Findings + PPE -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
-        <div class="bg-ink-900 border border-ink-700 rounded-xl p-5">
-          <h2 class="font-semibold">Key findings</h2>
-          <ul id="findings" class="mt-3 space-y-2 text-sm text-fog-300"></ul>
+      <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div class="card p-5 sm:p-6">
+          <h2 class="card-title">Key findings</h2>
+          <ul id="findings" class="mt-4 space-y-3 text-sm leading-relaxed text-fog-300"></ul>
         </div>
-        <div class="bg-ink-900 border border-ink-700 rounded-xl p-5">
-          <div class="flex items-baseline justify-between">
-            <h2 class="font-semibold">PPE compliance</h2>
+        <div class="card p-5 sm:p-6">
+          <div class="flex items-baseline justify-between gap-4">
+            <h2 class="card-title">PPE compliance</h2>
             <span class="text-xs text-fog-500">% of observed worker-time</span>
           </div>
-          <div id="ppeBars" class="mt-4 space-y-4"></div>
+          <div id="ppeBars" class="mt-5 space-y-5"></div>
         </div>
       </div>
 
       <!-- Review -->
-      <div class="bg-ink-900 border border-ink-700 rounded-xl p-4 sm:p-5 mt-5" id="reviewCard">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 class="font-semibold">Review</h2>
-          <div class="flex items-center gap-4 text-sm">
-            <label class="flex items-center gap-2 text-fog-300"><input id="showBoxes" type="checkbox" checked class="accent-[#F5B400]"> Worker boxes</label>
-          </div>
+      <div class="card mt-6 p-5 sm:p-6" id="reviewCard">
+        <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <h2 class="card-title">Review</h2>
+          <label class="flex items-center gap-2 text-sm text-fog-300"><input id="showBoxes" type="checkbox" checked class="accent-[#F5B400]"> Worker boxes</label>
         </div>
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <div class="lg:col-span-8">
-            <div id="playerWrap" class="relative rounded-lg overflow-hidden bg-black">
-              <video id="player" class="w-full max-h-[480px] block mx-auto" controls muted playsinline></video>
-              <canvas id="overlay" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+            <div id="playerWrap" class="relative overflow-hidden rounded-xl bg-black ring-1 ring-white/[0.06]">
+              <video id="player" class="mx-auto block max-h-[480px] w-full" controls muted playsinline></video>
+              <canvas id="overlay" class="pointer-events-none absolute inset-0 h-full w-full"></canvas>
             </div>
-            <div id="noVideo" class="hidden rounded-lg border border-dashed border-ink-600 p-8 text-center">
+            <div id="noVideo" class="hidden rounded-xl border-2 border-dashed border-ink-700 bg-ink-950/40 p-10 text-center">
               <p class="text-fog-300">The video isn't loaded in this browser tab.</p>
-              <p class="text-sm text-fog-500 mt-1">The server doesn't keep footage. Pick the same file again to review it with worker boxes (it stays on your device).</p>
-              <button id="attachVideoBtn" type="button" class="mt-4 rounded-md border border-ink-600 px-4 py-2 text-sm hover:border-brand hover:text-brand">Choose video…</button>
+              <p class="mx-auto mt-2 max-w-md text-sm leading-relaxed text-fog-500">The server doesn't keep footage. Pick the same file again to review it with worker boxes (it stays on your device).</p>
+              <button id="attachVideoBtn" type="button" class="btn-secondary mt-5">Choose video…</button>
               <input id="attachInput" type="file" accept="video/*" class="hidden" />
             </div>
           </div>
           <div class="lg:col-span-4">
-            <h3 class="text-sm text-fog-400">In frame now</h3>
-            <ul id="nowList" class="mt-2 space-y-2 text-sm"></ul>
+            <h3 class="text-sm font-medium text-fog-400">In frame now</h3>
+            <ul id="nowList" class="mt-3 space-y-2 text-sm"></ul>
           </div>
         </div>
-        <div class="mt-5">
-          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-            <h3 class="text-sm text-fog-400">Timeline <span class="text-fog-500">· click to jump</span></h3>
-            <div id="timelineLegend" class="flex flex-wrap gap-3 text-xs text-fog-400"></div>
+        <div class="mt-6 border-t border-white/[0.06] pt-5">
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-sm font-medium text-fog-400">Timeline <span class="font-normal text-fog-500">· click to jump</span></h3>
+            <div id="timelineLegend" class="flex flex-wrap gap-4 text-xs text-fog-400"></div>
           </div>
           <div id="timeline" class="w-full overflow-x-auto"></div>
         </div>
       </div>
 
       <!-- Workers -->
-      <div class="mt-8">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 class="text-lg font-semibold">Workers <span id="workerCount" class="text-fog-500 font-normal"></span></h2>
+      <div class="mt-10">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-lg font-semibold">Workers <span id="workerCount" class="font-normal text-fog-500"></span></h2>
           <div class="flex flex-wrap items-center gap-2 text-sm">
-            <div id="workerFilters" class="flex rounded-lg bg-ink-900 border border-ink-700 p-1"></div>
-            <select id="workerSort" class="rounded-lg bg-ink-900 border border-ink-700 px-3 py-2 text-sm focus:outline-none focus:border-brand">
+            <div id="workerFilters" class="flex h-9 items-center rounded-lg border border-ink-700 bg-ink-900 p-1"></div>
+            <select id="workerSort" class="select">
               <option value="severity">Most severe</option>
               <option value="violation">Longest in violation</option>
               <option value="first">First seen</option>
             </select>
           </div>
         </div>
-        <div id="workers" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
-        <p id="briefNote" class="text-xs text-fog-500 mt-3"></p>
+        <div id="workers" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"></div>
+        <p id="briefNote" class="hint mt-3"></p>
       </div>
 
       <!-- Events -->
-      <div class="bg-ink-900 border border-ink-700 rounded-xl p-4 sm:p-5 mt-8">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 class="font-semibold">Violation events <span id="eventCount" class="text-fog-500 font-normal"></span></h2>
-          <div class="flex gap-2 text-sm">
-            <select id="evType" class="rounded-lg bg-ink-850 border border-ink-600 px-3 py-1.5 focus:outline-none focus:border-brand"><option value="">All types</option></select>
-            <select id="evWorker" class="rounded-lg bg-ink-850 border border-ink-600 px-3 py-1.5 focus:outline-none focus:border-brand"><option value="">All workers</option></select>
+      <div class="card mt-10 p-5 sm:p-6">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 class="card-title">Violation events <span id="eventCount" class="font-normal text-fog-500"></span></h2>
+          <div class="flex gap-2">
+            <select id="evType" class="select"><option value="">All types</option></select>
+            <select id="evWorker" class="select"><option value="">All workers</option></select>
           </div>
         </div>
-        <div class="overflow-x-auto -mx-4 sm:mx-0">
-          <table class="w-full text-sm min-w-[640px]">
-            <thead class="text-left text-fog-500 text-xs uppercase tracking-wide">
+        <div class="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
+          <table class="w-full min-w-[640px] text-sm">
+            <thead class="text-left text-xs font-medium text-fog-500">
               <tr class="border-b border-ink-700">
-                <th class="py-2 px-4 sm:px-2 font-medium"><button data-sort="worker_id">Worker</button></th>
-                <th class="py-2 px-2 font-medium">Violation</th>
-                <th class="py-2 px-2 font-medium"><button data-sort="t_start">Start</button></th>
-                <th class="py-2 px-2 font-medium"><button data-sort="duration">Duration</button></th>
-                <th class="py-2 px-2 font-medium"><button data-sort="peak_conf">Confidence</button></th>
-                <th class="py-2 px-2 font-medium">Hazard</th>
-                <th class="py-2 px-2 font-medium"><button data-sort="severity">Severity</button></th>
+                <th class="px-3 py-2.5 font-medium first:pl-0"><button data-sort="worker_id">Worker</button></th>
+                <th class="px-3 py-2.5 font-medium">Violation</th>
+                <th class="px-3 py-2.5 font-medium"><button data-sort="t_start">Start</button></th>
+                <th class="px-3 py-2.5 font-medium"><button data-sort="duration">Duration</button></th>
+                <th class="px-3 py-2.5 font-medium"><button data-sort="peak_conf">Confidence</button></th>
+                <th class="px-3 py-2.5 font-medium">Hazard</th>
+                <th class="px-3 py-2.5 font-medium last:pr-0"><button data-sort="severity">Severity</button></th>
               </tr>
             </thead>
             <tbody id="eventRows" class="tabular"></tbody>
           </table>
         </div>
-        <p id="noEvents" class="hidden text-sm text-fog-400 py-6 text-center">No sustained PPE violations were detected.</p>
+        <p id="noEvents" class="hidden py-8 text-center text-sm text-fog-400">No sustained PPE violations were detected.</p>
       </div>
 
       <!-- Scene + developer -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
-        <div class="bg-ink-900 border border-ink-700 rounded-xl p-5">
-          <h2 class="font-semibold">Scene context</h2>
-          <dl id="scene" class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm"></dl>
+      <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div class="card p-5 sm:p-6">
+          <h2 class="card-title">Scene context</h2>
+          <dl id="scene" class="mt-4 grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm"></dl>
         </div>
-        <details class="bg-ink-900 border border-ink-700 rounded-xl p-5">
-          <summary class="flex items-center gap-2 font-semibold">
-            <svg class="chev w-3.5 h-3.5 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path d="M7 5l6 5-6 5V5z"/></svg>
+        <details class="card self-start p-5 sm:p-6">
+          <summary class="flex items-center gap-2 text-base font-semibold">
+            <svg class="chev h-3.5 w-3.5 text-fog-400 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path d="M7 5l6 5-6 5V5z"/></svg>
             Developer data
           </summary>
-          <p class="text-xs text-fog-500 mt-2">Raw API output. <a id="framesLink" class="text-brand hover:underline" target="_blank" rel="noopener">Per-frame detections</a></p>
-          <pre id="rawJson" class="mt-3 max-h-80 overflow-auto text-xs bg-ink-950 rounded-md p-3 text-fog-300"></pre>
+          <p class="hint mt-3">Raw API output. <a id="framesLink" class="text-brand hover:underline" target="_blank" rel="noopener">Per-frame detections</a></p>
+          <pre id="rawJson" class="mt-3 max-h-80 overflow-auto rounded-lg bg-ink-950 p-4 text-xs text-fog-300 shadow-inset"></pre>
         </details>
       </div>
     </section>
   </main>
 
   <!-- Worker drawer -->
-  <div id="drawerBackdrop" class="fixed inset-0 bg-black/60 opacity-0 pointer-events-none transition-opacity z-40"></div>
+  <div id="drawerBackdrop" class="pointer-events-none fixed inset-0 z-40 bg-black/60 opacity-0 transition-opacity"></div>
   <aside id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle"
-         class="fixed z-50 bg-ink-900 border-ink-700 shadow-2xl transition-transform duration-300 overflow-y-auto
+         class="fixed z-50 overflow-y-auto border-white/[0.06] bg-ink-900 shadow-2xl transition-transform duration-300
                 inset-x-0 bottom-0 max-h-[85vh] rounded-t-2xl border-t
-                md:inset-y-0 md:right-0 md:left-auto md:w-[440px] md:max-h-none md:rounded-none md:border-l md:border-t-0 md:translate-x-full">
-    <div class="p-5">
-      <div class="flex items-start justify-between gap-3">
+                md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:w-[440px] md:translate-x-full md:rounded-none md:border-l md:border-t-0">
+    <div class="p-6">
+      <div class="flex items-start justify-between gap-3 border-b border-white/[0.06] pb-4">
         <h2 id="drawerTitle" class="text-lg font-semibold"></h2>
-        <button id="drawerClose" type="button" aria-label="Close" class="text-fog-400 hover:text-fog-100 p-1">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>
+        <button id="drawerClose" type="button" aria-label="Close" class="-mr-1 rounded-md p-1 text-fog-400 hover:bg-ink-800 hover:text-fog-100">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
       </div>
-      <div id="drawerBody" class="mt-4"></div>
+      <div id="drawerBody" class="mt-5"></div>
     </div>
   </aside>
 
