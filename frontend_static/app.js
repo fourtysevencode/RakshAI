@@ -104,7 +104,7 @@ async function loadHealth() {
     const h = await api('/health');
     const ok = h.model.loaded;
     el.innerHTML = `<span class="w-2 h-2 rounded-full ${ok ? 'bg-ok' : 'bg-bad'}"></span>` +
-      `<span>${ok ? `Model ready · ${h.model.classes.length} classes` : 'Model unavailable'}</span>`;
+      `<span>${ok ? `Model ready<span class="hidden sm:inline"> · ${h.model.classes.length} classes</span>` : 'Model unavailable'}</span>`;
     el.title = ok ? h.model.classes.join(', ') : (h.model.error || '');
   } catch {
     el.innerHTML = '<span class="w-2 h-2 rounded-full bg-bad"></span><span>Server unreachable</span>';
@@ -401,7 +401,7 @@ function renderWorkerFilters() {
     .filter(([k]) => k === 'all' || counts[k]);
   $('#workerFilters').innerHTML = opts.map(([k, l]) =>
     `<button type="button" data-filter="${k}" aria-pressed="${state.workerFilter === k}"
-      class="inline-flex h-7 items-center gap-1.5 rounded-md px-3 ${state.workerFilter === k ? 'bg-ink-700 text-fog-100 shadow-sm' : 'text-fog-400 hover:text-fog-100'}">${l} <span class="text-fog-500 tabular">${counts[k] || 0}</span></button>`).join('');
+      class="inline-flex h-7 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 sm:flex-none ${state.workerFilter === k ? 'bg-ink-700 text-fog-100 shadow-sm' : 'text-fog-400 hover:text-fog-100'}">${l} <span class="text-fog-500 tabular">${counts[k] || 0}</span></button>`).join('');
 }
 
 function thumbHtml(p, cls) {

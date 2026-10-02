@@ -124,7 +124,7 @@
 
         <!-- Settings -->
         <div class="card flex flex-col gap-6 p-5 sm:p-6 lg:col-span-5">
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label class="block">
               <span class="label">Site name <span class="font-normal text-fog-500">(optional)</span></span>
               <input id="site" placeholder="Untitled site" autocomplete="off" class="input mt-2" />
@@ -137,21 +137,21 @@
 
           <fieldset>
             <legend class="label">Required PPE <span class="font-normal text-fog-500">· counted as violations</span></legend>
-            <div id="ppeChips" class="mt-2 flex flex-wrap gap-2">
-              <button type="button" class="chip inline-flex h-9 items-center gap-2 rounded-full border border-ink-700 px-3.5 text-sm transition" data-item="hardhat" aria-pressed="true"><span class="chip-dot h-2 w-2 rounded-full border border-current bg-brand"></span>Hardhat</button>
-              <button type="button" class="chip inline-flex h-9 items-center gap-2 rounded-full border border-ink-700 px-3.5 text-sm transition" data-item="vest" aria-pressed="true"><span class="chip-dot h-2 w-2 rounded-full border border-current bg-brand"></span>Safety vest</button>
-              <button type="button" class="chip inline-flex h-9 items-center gap-2 rounded-full border border-ink-700 px-3.5 text-sm transition" data-item="mask" aria-pressed="true"><span class="chip-dot h-2 w-2 rounded-full border border-current bg-brand"></span>Mask</button>
+            <div id="ppeChips" class="mt-2 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+              <button type="button" class="chip inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-ink-700 px-3.5 text-sm transition" data-item="hardhat" aria-pressed="true"><span class="chip-dot h-2 w-2 shrink-0 rounded-full border border-current bg-brand"></span>Hardhat</button>
+              <button type="button" class="chip inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-ink-700 px-3.5 text-sm transition" data-item="vest" aria-pressed="true"><span class="chip-dot h-2 w-2 shrink-0 rounded-full border border-current bg-brand"></span><span class="sm:hidden">Vest</span><span class="hidden sm:inline">Safety vest</span></button>
+              <button type="button" class="chip inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-ink-700 px-3.5 text-sm transition" data-item="mask" aria-pressed="true"><span class="chip-dot h-2 w-2 shrink-0 rounded-full border border-current bg-brand"></span>Mask</button>
             </div>
             <p class="hint mt-2">All three are still measured per worker. Boots can't be detected by the current model.</p>
           </fieldset>
 
           <fieldset>
             <legend class="label">Analysis detail</legend>
-            <div class="seg mt-2 grid h-10 grid-cols-4 rounded-lg border border-ink-700 bg-ink-950/60 p-1 text-sm shadow-inset" role="radiogroup">
-              <label class="cursor-pointer"><input type="radio" name="fps" value="2" class="sr-only"><span class="grid h-full place-items-center rounded-md text-fog-300 transition">Fast</span></label>
-              <label class="cursor-pointer"><input type="radio" name="fps" value="5" class="sr-only" checked><span class="grid h-full place-items-center rounded-md text-fog-300 transition">Balanced</span></label>
-              <label class="cursor-pointer"><input type="radio" name="fps" value="10" class="sr-only"><span class="grid h-full place-items-center rounded-md text-fog-300 transition">Thorough</span></label>
-              <label class="cursor-pointer"><input type="radio" name="fps" value="0" class="sr-only"><span class="grid h-full place-items-center rounded-md text-fog-300 transition">All frames</span></label>
+            <div class="seg mt-2 grid grid-cols-2 gap-1 rounded-lg border border-ink-700 bg-ink-950/60 p-1 text-sm shadow-inset sm:h-10 sm:grid-cols-4 sm:gap-0" role="radiogroup">
+              <label class="cursor-pointer"><input type="radio" name="fps" value="2" class="sr-only"><span class="grid h-8 place-items-center rounded-md text-fog-300 transition sm:h-full">Fast</span></label>
+              <label class="cursor-pointer"><input type="radio" name="fps" value="5" class="sr-only" checked><span class="grid h-8 place-items-center rounded-md text-fog-300 transition sm:h-full">Balanced</span></label>
+              <label class="cursor-pointer"><input type="radio" name="fps" value="10" class="sr-only"><span class="grid h-8 place-items-center rounded-md text-fog-300 transition sm:h-full">Thorough</span></label>
+              <label class="cursor-pointer"><input type="radio" name="fps" value="0" class="sr-only"><span class="grid h-8 place-items-center rounded-md text-fog-300 transition sm:h-full">All frames</span></label>
             </div>
             <p id="fpsHint" class="hint mt-2 tabular">5 frames per second of video.</p>
           </fieldset>
@@ -227,8 +227,8 @@
           <p id="resMeta" class="truncate text-sm text-fog-500"></p>
           <h1 id="resTitle" class="mt-1 truncate text-2xl font-semibold tracking-tight sm:text-3xl"></h1>
         </div>
-        <div class="flex shrink-0 flex-wrap gap-2">
-          <a id="pdfBtn" href="#" class="btn-primary">
+        <div class="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <a id="pdfBtn" href="#" class="btn-primary col-span-2">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0 4-4m-4 4-4-4M4 20h16"/></svg>
             PDF report
           </a>
@@ -292,9 +292,9 @@
       <div class="mt-10">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 class="text-lg font-semibold">Workers <span id="workerCount" class="font-normal text-fog-500"></span></h2>
-          <div class="flex flex-wrap items-center gap-2 text-sm">
+          <div class="flex w-full flex-col gap-2 text-sm sm:w-auto sm:flex-row sm:items-center">
             <div id="workerFilters" class="flex h-9 items-center rounded-lg border border-ink-700 bg-ink-900 p-1"></div>
-            <select id="workerSort" class="select">
+            <select id="workerSort" class="select w-full sm:w-auto">
               <option value="severity">Most severe</option>
               <option value="violation">Longest in violation</option>
               <option value="first">First seen</option>
@@ -309,13 +309,13 @@
       <div class="card mt-10 p-5 sm:p-6">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 class="card-title">Violation events <span id="eventCount" class="font-normal text-fog-500"></span></h2>
-          <div class="flex gap-2">
+          <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
             <select id="evType" class="select"><option value="">All types</option></select>
             <select id="evWorker" class="select"><option value="">All workers</option></select>
           </div>
         </div>
         <div class="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
-          <table class="w-full min-w-[640px] text-sm">
+          <table class="w-full min-w-[640px] whitespace-nowrap text-sm">
             <thead class="text-left text-xs font-medium text-fog-500">
               <tr class="border-b border-ink-700">
                 <th class="px-3 py-2.5 font-medium first:pl-0"><button data-sort="worker_id">Worker</button></th>
