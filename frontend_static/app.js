@@ -185,16 +185,14 @@ function renderStepper(current) {
   const idx = STEPS.findIndex(([k]) => k === current);
   $('#stepper').innerHTML = STEPS.map(([, label], i) => {
     const done = i < idx, active = i === idx;
-    const box = done ? 'border-brand/40 text-fog-300' : active ? 'border-brand text-brand bg-brand/10' : 'border-ink-700 text-fog-500';
-    const mark = done ? '✓' : String(i + 1).padStart(2, '0');
-    return `<li class="rounded-lg border px-2.5 py-2 ${box}"><span class="font-mono text-[10px]">${mark}</span><p class="mt-0.5">${label}</p></li>`;
+    const bar = done ? 'bg-brand' : active ? 'bg-brand/60' : 'bg-ink-700';
+    const txt = done ? 'text-fog-300' : active ? 'text-brand font-medium' : 'text-fog-500';
+    return `<li><div class="h-1 rounded-full ${bar}"></div><p class="mt-2 ${txt}">${label}</p></li>`;
   }).join('');
 }
 
 function setProgress(pct, text, eta) {
-  const p = Math.round(Math.max(0, Math.min(100, pct)));
-  $('#progressFill').style.width = `${p}%`;
-  $('#progressPct').innerHTML = `${p}<span class="text-3xl text-fog-500">%</span>`;
+  $('#progressFill').style.width = `${Math.max(0, Math.min(100, pct))}%`;
   $('#progressText').textContent = text;
   $('#progressEta').textContent = eta || '';
 }
@@ -224,6 +222,7 @@ async function startAnalysis() {
   const site = $('#site').value.trim(), cam = $('#camera').value.trim();
   const ppe = requiredPpe();
   if (!state.file) return showFormError('Choose a video first.');
+  if (!site || !cam) return showFormError('Enter a site name and camera ID.');
   if (!ppe.length) return showFormError('Select at least one required PPE item.');
   showFormError('');
 
@@ -238,8 +237,7 @@ async function startAnalysis() {
   fd.append('debug', $('#debug').checked ? 'true' : 'false');
 
   show('progressView');
-  // Blank site/camera are fine: the server fills in defaults
-  $('#progressSubject').textContent = `${site || 'Untitled site'} · ${cam || 'CAM-01'} · ${state.file.name}`;
+  $('#progressSubject').textContent = `${site} · ${cam} · ${state.file.name}`;
   $('#progressError').classList.add('hidden');
   $('#progressActions').classList.add('hidden');
   $('#cancelBtn').classList.remove('hidden');
@@ -337,19 +335,18 @@ function renderResults() {
 }
 
 function renderKpis(s) {
-  const comp = s.overall_compliance;
   const tiles = [
-    { v: s.workers_observed, l: 'Workers observed', bar: '#9AA1AC' },
-    { v: s.workers_non_compliant, l: 'With violations', tone: s.workers_non_compliant ? 'text-bad' : 'text-ok', bar: s.workers_non_compliant ? '#EF5350' : '#3FB67A' },
-    { v: fmtPct(comp), l: 'PPE compliance', bar: comp == null ? '#3A414B' : comp >= 0.9 ? '#3FB67A' : comp >= 0.6 ? '#F0A020' : '#EF5350' },
-    { v: s.total_events, l: 'Violation events', tone: s.total_events ? 'text-bad' : 'text-ok', bar: s.total_events ? '#EF5350' : '#3FB67A' },
-    { v: s.longest_event ? fmtDur(s.longest_event.duration) : '–', l: 'Longest violation', bar: '#F5B400',
+    { v: s.workers_observed, l: 'Workers observed' },
+    { v: s.workers_non_compliant, l: 'With violations', tone: s.workers_non_compliant ? 'text-bad' : 'text-ok' },
+    { v: fmtPct(s.overall_compliance), l: 'PPE compliance' },
+    { v: s.total_events, l: 'Violation events', tone: s.total_events ? 'text-bad' : 'text-ok' },
+    { v: s.longest_event ? fmtDur(s.longest_event.duration) : '–', l: 'Longest violation',
       sub: s.longest_event ? `${s.longest_event.worker} · ${s.longest_event.label}` : '' },
   ];
   $('#kpis').innerHTML = tiles.map((t, i) => `
-    <div class="panel kpi p-4 pl-5 ${i === tiles.length - 1 ? 'col-span-2 md:col-span-1' : ''}" style="--kpi:${t.bar}">
-      <p class="eyebrow">${esc(t.l)}</p>
-      <p class="font-display mt-2 text-3xl sm:text-4xl font-bold tabular ${t.tone || ''}">${esc(t.v)}</p>
+    <div class="bg-ink-900 border border-ink-700 rounded-xl p-4 ${i === tiles.length - 1 ? 'col-span-2 md:col-span-1' : ''}">
+      <p class="text-2xl sm:text-3xl font-semibold tabular ${t.tone || ''}">${esc(t.v)}</p>
+      <p class="text-sm text-fog-400 mt-1">${esc(t.l)}</p>
       ${t.sub ? `<p class="text-xs text-fog-500 mt-0.5 truncate">${esc(t.sub)}</p>` : ''}
     </div>`).join('');
 }
@@ -429,7 +426,7 @@ function renderWorkers() {
     if (p.exposure.machinery) exp.push(`near machinery ${fmtDur(p.exposure.machinery)}`);
     if (p.exposure.vehicle) exp.push(`near vehicles ${fmtDur(p.exposure.vehicle)}`);
     return `<button type="button" data-worker="${p.worker_id}"
-      class="text-left panel overflow-hidden hover:border-fog-500 focus:outline-none focus-visible:border-brand transition-colors">
+      class="text-left bg-ink-900 border border-ink-700 rounded-xl overflow-hidden hover:border-fog-500 focus:outline-none focus-visible:border-brand transition-colors">
       <div class="flex gap-4 p-4">
         <div class="w-20 h-28 rounded-md bg-ink-800 overflow-hidden shrink-0">${thumbHtml(p, 'w-full h-full')}</div>
         <div class="min-w-0 flex-1">
