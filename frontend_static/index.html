@@ -135,7 +135,10 @@
             <video id="setupPreview" class="max-h-[440px] w-full rounded-xl bg-black" controls muted playsinline></video>
             <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
               <div id="fileMeta" class="min-w-0 truncate text-fog-300 tabular"></div>
-              <button type="button" id="changeVideo" class="shrink-0 font-medium text-brand hover:underline underline-offset-4">Change video</button>
+              <div class="flex shrink-0 items-center gap-4">
+                <button type="button" id="removeVideo" class="font-medium text-fog-400 hover:text-fog-200 hover:underline underline-offset-4">Remove</button>
+                <button type="button" id="changeVideo" class="font-medium text-brand hover:underline underline-offset-4">Change video</button>
+              </div>
             </div>
           </div>
           <input id="videoInput" type="file" accept="video/*" class="hidden" />
@@ -387,7 +390,7 @@
     </div>
   </aside>
 
-  <script src="/frontend/config.js?v=2"></script>
-  <script src="/frontend/app.js?v=2"></script>
+  <script src="/frontend/config.js?v=3"></script>
+  <script src="/frontend/app.js?v=3"></script>
 </body>
 </html>

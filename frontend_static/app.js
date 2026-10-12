@@ -160,6 +160,22 @@ async function loadSample(btn) {
   }
 }
 
+function clearFile() {
+  if (state.fileUrl) URL.revokeObjectURL(state.fileUrl);
+  state.file = null;
+  state.fileUrl = null;
+  state.videoMeta = null;
+  const v = $('#setupPreview');
+  v.removeAttribute('src');
+  v.load();
+  $('#videoInput').value = '';
+  $('#previewWrap').classList.add('hidden');
+  $('#dropzone').classList.remove('hidden');
+  $('#samples').classList.remove('hidden');
+  showFormError('');
+  updateFpsHint();
+}
+
 function selectedFps() { return Number($('input[name=fps]:checked').value); }
 function requiredPpe() { return $$('#ppeChips .chip').filter((c) => c.getAttribute('aria-pressed') === 'true').map((c) => c.dataset.item); }
 
@@ -190,6 +206,7 @@ function initSetup() {
   dz.addEventListener('drop', (e) => { e.preventDefault(); dz.classList.remove('drag-over'); setFile(e.dataTransfer.files?.[0]); });
   input.addEventListener('change', () => setFile(input.files?.[0]));
   $('#changeVideo').addEventListener('click', () => input.click());
+  $('#removeVideo').addEventListener('click', clearFile);
   $$('#samples .sample').forEach((btn) => btn.addEventListener('click', () => loadSample(btn)));
 
   $$('#ppeChips .chip').forEach((chip) => chip.addEventListener('click', () => {
