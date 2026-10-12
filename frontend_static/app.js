@@ -126,6 +126,7 @@ function setFile(file) {
   const v = $('#setupPreview');
   v.src = state.fileUrl;
   $('#dropzone').classList.add('hidden');
+  $('#samples').classList.add('hidden');
   $('#previewWrap').classList.remove('hidden');
   $('#fileMeta').textContent = `${file.name} · ${fmtBytes(file.size)}`;
   v.onloadedmetadata = () => {
@@ -136,6 +137,27 @@ function setFile(file) {
   v.onerror = () => {
     $('#fileMeta').textContent = `${file.name} · ${fmtBytes(file.size)} · preview not supported in this browser (analysis still works)`;
   };
+}
+
+// Demo clips ship with the frontend; fetched into a File so they go through the
+// same upload path as a user's own footage.
+async function loadSample(btn) {
+  const url = btn.dataset.sample;
+  const label = btn.querySelector('span');
+  const prev = label.innerHTML;
+  $$('#samples .sample').forEach((b) => { b.disabled = true; });
+  label.textContent = 'Loading…';
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error();
+    const blob = await r.blob();
+    setFile(new File([blob], url.split('/').pop(), { type: 'video/mp4' }));
+  } catch {
+    showFormError('Could not load the sample video.');
+  } finally {
+    label.innerHTML = prev;
+    $$('#samples .sample').forEach((b) => { b.disabled = false; });
+  }
 }
 
 function selectedFps() { return Number($('input[name=fps]:checked').value); }
@@ -168,6 +190,7 @@ function initSetup() {
   dz.addEventListener('drop', (e) => { e.preventDefault(); dz.classList.remove('drag-over'); setFile(e.dataTransfer.files?.[0]); });
   input.addEventListener('change', () => setFile(input.files?.[0]));
   $('#changeVideo').addEventListener('click', () => input.click());
+  $$('#samples .sample').forEach((btn) => btn.addEventListener('click', () => loadSample(btn)));
 
   $$('#ppeChips .chip').forEach((chip) => chip.addEventListener('click', () => {
     chip.setAttribute('aria-pressed', chip.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');

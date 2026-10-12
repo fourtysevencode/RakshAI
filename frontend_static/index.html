@@ -118,6 +118,19 @@
               <p class="mt-1 text-sm text-fog-500">MP4, MOV or WebM · CCTV or phone footage</p>
             </div>
           </div>
+          <div id="samples" class="mt-5">
+            <p class="text-sm text-fog-500">No footage handy? Try a sample:</p>
+            <div class="mt-3 grid grid-cols-2 gap-3">
+              <button type="button" data-sample="/frontend/samples/scaffold-ppe.mp4" class="sample group overflow-hidden rounded-xl border border-white/[0.06] bg-ink-950/40 text-left transition-colors hover:border-ink-600 focus:outline-none focus-visible:border-brand">
+                <img src="/frontend/samples/scaffold-ppe.jpg" alt="" class="aspect-video w-full object-cover opacity-80 transition-opacity group-hover:opacity-100" loading="lazy" />
+                <span class="block px-3 py-2 text-sm"><span class="font-medium">Scaffolding</span> <span class="text-fog-500">· 10s</span></span>
+              </button>
+              <button type="button" data-sample="/frontend/samples/rooftop-no-ppe.mp4" class="sample group overflow-hidden rounded-xl border border-white/[0.06] bg-ink-950/40 text-left transition-colors hover:border-ink-600 focus:outline-none focus-visible:border-brand">
+                <img src="/frontend/samples/rooftop-no-ppe.jpg" alt="" class="aspect-video w-full object-cover opacity-80 transition-opacity group-hover:opacity-100" loading="lazy" />
+                <span class="block px-3 py-2 text-sm"><span class="font-medium">Rooftop</span> <span class="text-fog-500">· 31s</span></span>
+              </button>
+            </div>
+          </div>
           <div id="previewWrap" class="hidden">
             <video id="setupPreview" class="max-h-[440px] w-full rounded-xl bg-black" controls muted playsinline></video>
             <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
